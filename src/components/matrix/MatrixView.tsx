@@ -23,9 +23,7 @@ import type { Sticker, StickerStatus } from "../../types";
  * @returns Fila de chips con cada estado y su color
  */
 function StatusLegend() {
-  // Excluir Vendida (V) — no se usa en el flujo de venta actual
-  const entries = (Object.entries(STATUS_META) as [StickerStatus, (typeof STATUS_META)[StickerStatus]][])
-    .filter(([status]) => status !== "V");
+  const entries = Object.entries(STATUS_META) as [StickerStatus, (typeof STATUS_META)[StickerStatus]][];
   return (
     <div className="flex flex-wrap gap-2 items-center">
       <span className="text-xs text-gray-500 font-medium mr-1">Estados:</span>
