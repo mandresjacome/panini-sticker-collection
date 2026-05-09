@@ -122,6 +122,16 @@ export function MatrixView() {
   return (
     <div className="space-y-4">
 
+      {/* ── Título de la vista ────────────────────────────────────────── */}
+      <div className="bg-[#0a0a14] rounded-xl px-4 py-3">
+        <h2 className="text-lg font-black text-white leading-tight">
+          📋 Vista Matriz
+        </h2>
+        <p className="text-xs text-[#FFC72C] font-semibold mt-0.5">
+          FIFA World Cup 2026 · {stickersArray.length} láminas
+        </p>
+      </div>
+
       {/* ── Resumen de inventario ─────────────────────────────────────── */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
 

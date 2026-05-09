@@ -106,9 +106,14 @@ export function DashboardView() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-black text-gray-900">📊 Dashboard de Ventas</h2>
-        <p className="text-xs text-gray-400">Métricas en tiempo real · enfocado en tu stock disponible</p>
+      {/* ── Título de la vista ─────────────────────────────────────────── */}
+      <div className="bg-[#0a0a14] rounded-xl px-4 py-3">
+        <h2 className="text-lg font-black text-white leading-tight">
+          📊 Dashboard de Ventas
+        </h2>
+        <p className="text-xs text-[#FFC72C] font-semibold mt-0.5">
+          Métricas en tiempo real · enfocado en tu stock disponible
+        </p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
