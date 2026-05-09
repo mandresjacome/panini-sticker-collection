@@ -40,7 +40,6 @@ export function AdminLayout() {
   return (
     <div className="min-h-screen bg-gray-100">
 
-      {/* ── Header del panel admin ────────────────────────────────────────── */}
       <header className="bg-[#0a0a14] sticky top-0 z-10">
 
         {/* Barra multicolor superior — paleta FIFA 2026 */}
@@ -54,38 +53,48 @@ export function AdminLayout() {
           <div className="flex-1 bg-[#8B5CF6]" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        {/* En mobile: 2 filas (logo+salir / nav). En desktop: 1 fila con nav centrado */}
+        <div className="max-w-7xl mx-auto px-4 sm:relative">
 
-          {/* Logo/título */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <span className="text-2xl leading-none">🏆</span>
-            <div>
-              <h1 className="text-base font-black text-white leading-tight tracking-tight">Panel Vendedor</h1>
-              <p className="text-[11px] text-[#FFC72C] font-semibold tracking-wide uppercase">FIFA World Cup 2026</p>
+          {/* ── Fila 1 en mobile / única en desktop: logo + salir ───────── */}
+          <div className="flex items-center justify-between py-2 gap-2">
+
+            {/* Logo/título */}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xl leading-none flex-shrink-0">🏆</span>
+              <div className="min-w-0">
+                <h1 className="text-sm font-black text-white leading-tight tracking-tight truncate">Panel Vendedor</h1>
+                <p className="text-[10px] text-[#FFC72C] font-semibold tracking-wide uppercase">FIFA World Cup 2026</p>
+              </div>
+            </div>
+
+            {/* Usuario + logout */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs text-gray-400 hidden sm:block truncate max-w-40">
+                {user.email}
+              </span>
+              <button
+                onClick={logout}
+                className="text-xs text-[#E8192C] hover:text-white border border-[#E8192C] hover:bg-[#E8192C] font-semibold transition-colors px-3 py-1.5 rounded-lg whitespace-nowrap"
+              >
+                Salir
+              </button>
             </div>
           </div>
 
-          {/* Navegación entre vistas */}
-          <nav className="flex items-center gap-1" aria-label="Navegación del panel admin">
+          {/* ── Nav: fila 2 en mobile, centrado en desktop ───────────────── */}
+          <nav
+            className="flex items-center gap-1 pb-2 sm:pb-0 sm:absolute sm:inset-y-0 sm:left-1/2 sm:-translate-x-1/2 sm:flex sm:items-center"
+            aria-label="Navegación del panel admin"
+          >
             <AdminNavLink to="/admin" label="📋 Matriz" end />
-            {/* ✏️ Editar — oculto temporalmente, se activa cuando se agregue foto de lámina */}
+            {/* ✏️ Editar — oculto temporalmente */}
             {/* <AdminNavLink to="/admin/crud" label="✏️ Editar" /> */}
             <AdminNavLink to="/admin/dashboard" label="📊 Dashboard" />
           </nav>
 
-          {/* Usuario + logout */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <span className="text-xs text-gray-400 hidden sm:block truncate max-w-40">
-              {user.email}
-            </span>
-            <button
-              onClick={logout}
-              className="text-xs text-[#E8192C] hover:text-white border border-[#E8192C] hover:bg-[#E8192C] font-semibold transition-colors px-3 py-1 rounded-lg"
-            >
-              Salir
-            </button>
-          </div>
         </div>
+      </header>
       </header>
 
       {/* ── Contenido de la ruta activa ───────────────────────────────────── */}
