@@ -104,20 +104,28 @@ export function StickerContextMenu({
     setPos({ top, left });
   }, [x, y]);
 
-  // Cerrar al hacer clic fuera del menú
+  // Cerrar al hacer clic/toque fuera del menú
   useEffect(() => {
-    function handleMouseDown(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+    function handleOutside(e: MouseEvent | TouchEvent) {
+      // En TouchEvent, el target viene de changedTouches
+      const target =
+        e instanceof TouchEvent
+          ? (e.changedTouches[0]?.target as Node | null)
+          : (e.target as Node);
+      if (menuRef.current && target && !menuRef.current.contains(target)) {
         onClose();
       }
     }
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
-    document.addEventListener("mousedown", handleMouseDown);
+    // mousedown cubre desktop; touchstart cubre mobile
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [onClose]);

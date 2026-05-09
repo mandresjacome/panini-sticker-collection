@@ -44,10 +44,12 @@ export function StickerCell({ sticker, onRightClick }: StickerCellProps) {
   const meta = STATUS_META[sticker.status] ?? STATUS_META["F"];
 
   /**
-   * @description Intercepta el menú contextual del navegador y abre el nuestro.
-   * @param e - Evento de clic derecho
+   * @description Abre el menú contextual con la posición del cursor/toque.
+   * Se usa tanto en clic izquierdo (mobile y desktop) como en clic derecho
+   * (desktop), para que en mobile el tap abra el menú normalmente.
+   * @param e - Evento de mouse/touch
    */
-  function handleContextMenu(e: React.MouseEvent) {
+  function handleOpen(e: React.MouseEvent) {
     e.preventDefault();
     onRightClick(sticker, e.clientX, e.clientY);
   }
@@ -58,9 +60,10 @@ export function StickerCell({ sticker, onRightClick }: StickerCellProps) {
 
   return (
     <button
-      onContextMenu={handleContextMenu}
-      title={`${sticker.code} — ${meta.label}${sticker.quantity > 1 ? ` (x${sticker.quantity})` : ""}\nClic derecho para cambiar estado`}
-      aria-label={`Lámina ${sticker.code}, estado ${meta.label}. Clic derecho para opciones.`}
+      onClick={handleOpen}
+      onContextMenu={handleOpen}
+      title={`${sticker.code} — ${meta.label}${sticker.quantity > 1 ? ` (x${sticker.quantity})` : ""}\nToca para cambiar estado`}
+      aria-label={`Lámina ${sticker.code}, estado ${meta.label}. Toca para opciones.`}
       className={[
         "relative flex items-center justify-center",
         "w-10 h-10 rounded text-xs font-bold",
