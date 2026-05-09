@@ -1,6 +1,6 @@
 # Avance de Desarrollo — App Láminas FIFA World Cup 2026
 
-**Fecha de última actualización:** 9 de mayo de 2026 — Sesión 4
+**Fecha de última actualización:** 9 de mayo de 2026 — Sesión 5 (tarde)
 
 ---
 
@@ -66,7 +66,8 @@ panini-sticker-collection/
 │   │   └── useTeams.ts         ✅ Catálogo de equipos (nombre completo)
 │   └── components/
 │       ├── ui/
-│       │   └── LoginForm.tsx   ✅ Formulario de login
+│       │   ├── LoginForm.tsx   ✅ Formulario de login
+│       │   └── Footer.tsx      ✅ Footer compartido (AmalfiDev)
 │       ├── admin/
 │       │   └── AdminLayout.tsx ✅ Layout protegido con navegación
 │       ├── matrix/
@@ -127,10 +128,11 @@ panini-sticker-collection/
 
 ### Componentes
 - **`src/components/ui/LoginForm.tsx`** ✅ — formulario de login con diseño FIFA 2026
+- **`src/components/ui/Footer.tsx`** ✅ — footer compartido con créditos AmalfiDev, franja 7 colores, texto `@n_baez1` en amarillo Panini
 - **`src/components/admin/AdminLayout.tsx`** ✅ — layout protegido, header oscuro + franja multicolor + nav amarillo activo
 - **`src/components/catalog/CatalogView.tsx`** ✅ — catálogo público, ruta `/`, solo láminas D, ordenado por álbum con banderas y etiqueta de grupo
 - **`src/components/matrix/StickerCell.tsx`** ✅ — celda con color de estado, badge cantidad, clic derecho
-- **`src/components/matrix/TeamSection.tsx`** ✅ — colapsable, bandera emoji, barra de progreso por equipo
+- **`src/components/matrix/TeamSection.tsx`** ✅ — colapsable, bandera emoji (sin barra de progreso)
 - **`src/components/matrix/MatrixView.tsx`** ✅ — grupos del álbum con separadores, chips Faltan/Disponibles
 - **`src/components/matrix/StickerContextMenu.tsx`** ✅ — menú Portal F↔D + selector −N+
 - **`src/components/crud/CRUDView.tsx`** ✅ — tabla con búsqueda, filtro por equipo/estado, ordenada por álbum, edición inline, validación de invariante *(nav oculto — reservado para feature de fotos)*
@@ -201,6 +203,14 @@ panini-sticker-collection/
 25. **Deploy** — GitHub (`mandresjacome/panini-sticker-collection`) + Vercel (URL pública)
 26. **`vercel.json`** — rewrite SPA para que React Router funcione en producción
 27. **CRUD oculto del nav** — link `✏️ Editar` comentado, ruta `/admin/crud` sigue viva para la feature de fotos
+28. **Fix mobile — tap menú contextual** — `StickerCell` ahora responde a `onClick` (antes solo `onContextMenu`); `StickerContextMenu` cierra con `touchstart` además de `mousedown`
+29. **Fix mobile — títulos de vista visibles** — todos los textos sobre fondo oscuro usan `style` inline (`color: '#ffffff'`) para no ser sobreescritos por la variable CSS global `color: var(--text)` en modo oscuro del SO
+30. **Fix mobile — "Panel Vendedor" visible** — mismo fix inline en `AdminLayout.tsx`
+31. **Fix mobile — separadores de grupo visibles** — labels de grupo en `MatrixView` con fondo `bg-gray-200` y texto `text-gray-700`; en `CatalogView` removido `hidden sm:inline`
+32. **Título catálogo público** — cambiado de "Láminas FIFA World Cup 2026" a **"Láminas Panini"**
+33. **Barra de progreso eliminada** — removida de `TeamSection` (no era necesaria para la herramienta de ventas); limpieza de variables/funciones sin usar (`calcProgress`, `haveCount`, `progress`, `useMemo`)
+34. **Footer AmalfiDev** — nuevo componente `Footer.tsx` con franja de 7 colores + créditos “Desarrollado para **@n_baez1** por **AmalfiDev** · 2026”; integrado en `AdminLayout` y `CatalogView`
+34. **Footer AmalfiDev** — nuevo componente `Footer.tsx` con franja de 7 colores + créditos "Desarrollado para **@n_baez1** por **AmalfiDev** · 2026"; integrado en `AdminLayout` y `CatalogView`
 
 ---
 
