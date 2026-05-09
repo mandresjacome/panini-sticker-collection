@@ -95,7 +95,6 @@ export function AdminLayout() {
 
         </div>
       </header>
-      </header>
 
       {/* ── Contenido de la ruta activa ───────────────────────────────────── */}
       <main className="max-w-7xl mx-auto px-4 py-6">
