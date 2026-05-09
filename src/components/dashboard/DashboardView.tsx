@@ -5,10 +5,11 @@
  * Ruta: /admin/dashboard
  */
 
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useStickers } from "../../hooks/useStickers";
 import { useTeams } from "../../hooks/useTeams";
 import { ALBUM_GROUP_ORDER, TEAM_GROUP_LABEL, TEAM_FLAG } from "../../lib/albumOrder";
+import { exportAvailableStickersToExcel } from "../../lib/exportUtils";
 import type { Sticker } from "../../types";
 
 function MetricCard({ icon, value, label, colorClass, subtitle }: {
@@ -32,6 +33,33 @@ interface GroupStats { label: string; units: number; max: number; }
 export function DashboardView() {
   const { stickersArray, isLoading, error } = useStickers();
   const { teamsMap, teamsLoading } = useTeams();
+
+  /** Controla el spinner del botón mientras se genera el Excel */
+  const [isExporting, setIsExporting] = useState(false);
+
+  /** Mensaje de error temporal si la exportación falla */
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  /**
+   * @description Dispara la exportación a Excel.
+   * Usa setTimeout(0) para ceder el hilo al navegador y que el spinner
+   * se renderice antes de que XLSX bloquee el hilo generando el archivo.
+   */
+  const handleExport = useCallback(() => {
+    setIsExporting(true);
+    setExportError(null);
+
+    // Ceder el hilo un tick para que React re-renderice el spinner
+    setTimeout(() => {
+      try {
+        exportAvailableStickersToExcel(stickersArray);
+      } catch (err) {
+        setExportError(err instanceof Error ? err.message : "Error al exportar");
+      } finally {
+        setIsExporting(false);
+      }
+    }, 0);
+  }, [stickersArray, teamsMap]);
 
   const availableStickers: Sticker[] = useMemo(
     () => stickersArray.filter((s) => s.status === "D"),
@@ -106,15 +134,47 @@ export function DashboardView() {
 
   return (
     <div className="space-y-6">
-      {/* ── Título de la vista ─────────────────────────────────────────── */}
-      <div className="bg-[#0a0a14] rounded-xl px-4 py-3">
-        <h2 className="text-lg font-black leading-tight" style={{ color: '#ffffff' }}>
-          📊 Dashboard de Ventas
-        </h2>
-        <p className="text-xs font-semibold mt-0.5" style={{ color: '#FFC72C' }}>
-          Métricas en tiempo real · enfocado en tu stock disponible
-        </p>
+      {/* ── Título de la vista + botón exportar ──────────────────────────── */}
+      <div className="bg-[#0a0a14] rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-lg font-black leading-tight" style={{ color: '#ffffff' }}>
+            📊 Dashboard de Ventas
+          </h2>
+          <p className="text-xs font-semibold mt-0.5" style={{ color: '#FFC72C' }}>
+            Métricas en tiempo real · enfocado en tu stock disponible
+          </p>
+        </div>
+
+        {/* Botón de exportación — deshabilitado sin stock o mientras exporta */}
+        <button
+          onClick={handleExport}
+          disabled={isExporting || codigosEnStock === 0}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all
+            disabled:opacity-40 disabled:cursor-not-allowed
+            bg-[#FFC72C] text-[#0a0a14] hover:bg-yellow-300 active:scale-95"
+          title={codigosEnStock === 0 ? "No hay láminas disponibles" : "Exportar láminas disponibles a Excel"}
+        >
+          {isExporting ? (
+            // Spinner mientras se genera el archivo
+            <>
+              <span className="w-4 h-4 border-2 border-[#0a0a14] border-t-transparent rounded-full animate-spin inline-block" />
+              <span>Generando…</span>
+            </>
+          ) : (
+            <>
+              <span>📥</span>
+              <span>Exportar Excel</span>
+            </>
+          )}
+        </button>
       </div>
+
+      {/* Mensaje de error de exportación — se auto-oculta implícitamente al reintentar */}
+      {exportError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-sm text-red-700">
+          ⚠️ {exportError}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <MetricCard icon="🏷️" value={codigosEnStock} label="Códigos en stock" colorClass="text-green-600" subtitle="Láminas distintas disponibles" />
