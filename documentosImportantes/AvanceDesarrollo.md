@@ -1,6 +1,6 @@
 # Avance de Desarrollo — App Láminas FIFA World Cup 2026
 
-**Fecha de última actualización:** 8 de mayo de 2026 — Sesión 3
+**Fecha de última actualización:** 9 de mayo de 2026 — Sesión 4
 
 ---
 
@@ -16,7 +16,14 @@
 
 ## Estado General
 
-App funcionando en `http://localhost:5174/`. Login de vendedores operativo. Capa de datos (service + store + hook) implementada. Vista Matriz completa con menú contextual (clic derecho) para cambiar estado F↔D y ajustar cantidad. React Router DOM instalado. Catálogo público y AdminLayout implementados. **Próximo paso: Vista CRUD y Dashboard.**
+**App deployada y funcionando en producción.**
+
+- URL pública (catálogo): **https://panini-sticker-collection.vercel.app**
+- Panel admin: **https://panini-sticker-collection.vercel.app/admin**
+- Repositorio: **https://github.com/mandresjacome/panini-sticker-collection**
+- Deploy automático: cada push a `main` → Vercel redespliega
+
+Todas las vistas implementadas: Matriz, CRUD, Dashboard y Catálogo público. Orden de álbum centralizado. Banderas de países. Diseño con identidad visual FIFA 2026 / Panini. **El roadmap original está 100 % completado.**
 
 ---
 
@@ -28,7 +35,7 @@ App funcionando en `http://localhost:5174/`. Login de vendedores operativo. Capa
 | Tailwind CSS v4 | ✅ |
 | Zustand | ✅ |
 | TanStack Query | ✅ |
-| TanStack Virtual | ✅ instalado, pendiente de usar |
+| TanStack Virtual | ✅ instalado (disponible para virtualización futura) |
 | Supabase JS | ✅ |
 | React Router DOM | ✅ |
 
@@ -68,9 +75,12 @@ panini-sticker-collection/
 │       │   ├── MatrixView.tsx         ✅ Vista inventario admin
 │       │   └── StickerContextMenu.tsx ✅ Menú F↔D con selector de cantidad
 │       ├── catalog/
-│       │   └── CatalogView.tsx ✅ Catálogo público (ruta /)
-│       ├── crud/               🔲 Por crear
-│       └── dashboard/          🔲 Por crear
+│       │   └── CatalogView.tsx        ✅ Catálogo público (ruta /)
+│       ├── crud/
+│       │   └── CRUDView.tsx           ✅ Tabla + edición inline (ruta /admin/crud)
+│       └── dashboard/
+│           └── DashboardView.tsx      ✅ Métricas + desglose (ruta /admin/dashboard)
+├── vercel.json                 ✅ Rewrite SPA para React Router
 ├── .env                        ✅ Credenciales reales (en .gitignore)
 ├── .env.example                ✅ Plantilla pública
 └── App.tsx                     ✅ React Router DOM — rutas completas
@@ -81,11 +91,21 @@ panini-sticker-collection/
 ## Archivos Implementados
 
 ### Dominio y tipos
-- **`src/types/index.ts`** ✅ — `StickerStatus = "F" | "D"` (solo dos estados), `Sticker`, `Team`, `StickersMap`, `TOTAL_STICKERS = 994`, `STATUS_META` (F: gris, D: verde)
+- **`src/types/index.ts`** ✅ — `StickerStatus = "F" | "D"`, `Sticker`, `Team`, `StickersMap`, `TOTAL_STICKERS = 994`, `STATUS_META` (F: gris, D: verde)
+
+### Orden del álbum (nuevo en sesión 4)
+- **`src/lib/albumOrder.ts`** ✅ — fuente de verdad para el orden canónico
+  - `ALBUM_GROUP_ORDER` — 14 bloques: Especiales → Grupos A–L → Patrocinadores
+  - `ALBUM_TEAM_ORDER` — 50 códigos en orden del álbum físico
+  - `ALBUM_TEAM_INDEX` — mapa O(1) de posición por código
+  - `TEAM_GROUP_LABEL` — etiqueta de grupo por equipo (ej. `MEX → "Grupo A"`)
+  - `TEAM_FLAG` — emoji de bandera por código (50 entradas completas)
+  - `sortByAlbumOrder(codes)` — utilidad de ordenamiento
 
 ### Supabase
 - **`src/lib/supabaseClient.ts`** ✅ — cliente singleton
 - **`supabase/migrations/001_create_tables.sql`** ✅ — esquema ejecutado
+- **`supabase/seed.sql`** ✅ — 994 láminas y 50 equipos insertados
 - **`supabase/seed.sql`** ✅ — 994 láminas y 50 equipos insertados
 
 ### Servicios (lógica de negocio)
@@ -107,13 +127,15 @@ panini-sticker-collection/
 - **`src/hooks/useTeams.ts`** ✅ — nombres completos de equipos (staleTime 30min)
 
 ### Componentes
-- **`src/components/ui/LoginForm.tsx`** ✅
-- **`src/components/admin/AdminLayout.tsx`** ✅ — layout protegido, redirige a `/admin/login` si no hay sesión
-- **`src/components/catalog/CatalogView.tsx`** ✅ — catálogo público, ruta `/`, solo láminas D
-- **`src/components/matrix/StickerCell.tsx`** ✅ — celda con color de estado, badge cantidad, solo clic derecho
-- **`src/components/matrix/TeamSection.tsx`** ✅ — colapsable, barra de progreso por equipo
-- **`src/components/matrix/MatrixView.tsx`** ✅ — chips Faltan/Disponibles, grid de equipos
-- **`src/components/matrix/StickerContextMenu.tsx`** ✅ — menú Portal, opciones Falta / Disponible con selector −N+
+- **`src/components/ui/LoginForm.tsx`** ✅ — formulario de login con diseño FIFA 2026
+- **`src/components/admin/AdminLayout.tsx`** ✅ — layout protegido, header oscuro + franja multicolor + nav amarillo activo
+- **`src/components/catalog/CatalogView.tsx`** ✅ — catálogo público, ruta `/`, solo láminas D, ordenado por álbum con banderas y etiqueta de grupo
+- **`src/components/matrix/StickerCell.tsx`** ✅ — celda con color de estado, badge cantidad, clic derecho
+- **`src/components/matrix/TeamSection.tsx`** ✅ — colapsable, bandera emoji, barra de progreso por equipo
+- **`src/components/matrix/MatrixView.tsx`** ✅ — grupos del álbum con separadores, chips Faltan/Disponibles
+- **`src/components/matrix/StickerContextMenu.tsx`** ✅ — menú Portal F↔D + selector −N+
+- **`src/components/crud/CRUDView.tsx`** ✅ — tabla con búsqueda, filtro por equipo/estado, ordenada por álbum, edición inline, validación de invariante
+- **`src/components/dashboard/DashboardView.tsx`** ✅ — 4 métricas card, barra de progreso global, desglose por equipo ordenado por álbum
 
 ---
 
@@ -121,15 +143,21 @@ panini-sticker-collection/
 
 - **URL:** `https://sdoycwmphulkydfguclx.supabase.co`
 - **Tablas:** `teams` (50 filas) + `stickers` (994 filas)
-- **RLS:** habilitado. Políticas actuales: solo `authenticated` puede leer/escribir stickers.
-- **⚠️ Pendiente:** agregar política `anon` para que el catálogo público funcione sin login:
-  ```sql
-  CREATE POLICY "public_can_read_available"
-    ON stickers FOR SELECT TO anon
-    USING (estado = 'D');
-  ```
+- **RLS:** habilitado — `authenticated` puede leer/escribir; `anon` puede leer estado `D`
 - **Realtime:** habilitado en tabla `stickers`
-- **Usuarios:** nicolas, cristian, anny, mario @panini2026.com
+- **Usuarios admin:** nicolas, cristian, anny, mario @panini2026.com
+
+---
+
+## Diseño Visual
+
+- **Paleta FIFA 2026 / Panini:**
+  - Fondo header: `#0a0a14` (negro)
+  - Franja 7 colores: `#E8192C` → `#F7941D` → `#FFC72C` → `#00A651` → `#009EA6` → `#003DA5` → `#8B5CF6`
+  - Amarillo Panini `#FFC72C` — nav activo, números destacados, spinners
+  - Rojo FIFA `#E8192C` — botón logout, alertas
+- **Banderas emoji** para los 50 equipos centralizadas en `albumOrder.ts`
+- **Orden canónico del álbum** aplicado en Matriz, CRUD, Dashboard y Catálogo
 
 ---
 
@@ -148,7 +176,7 @@ panini-sticker-collection/
 ## Tareas Completadas ✅
 
 1. Scaffold Vite + React + TS
-2. Instalación de dependencias completa (incluye React Router DOM)
+2. Instalación de dependencias completa
 3. Estructura de carpetas
 4. Tipos TypeScript del dominio — simplificado a F/D
 5. Cliente Supabase
@@ -164,18 +192,27 @@ panini-sticker-collection/
 15. `AdminLayout` protegido
 16. Menú contextual: `StickerContextMenu` — F↔D + selector cantidad
 17. Normalización de estados legacy R/V→D en service y Realtime
-18. Acceso defensivo a STATUS_META (evita crashes con datos legacy)
+18. Acceso defensivo a STATUS_META
+19. Limpieza DB — SQL de normalización de estados
+20. **Vista CRUD** — `CRUDView.tsx` con búsqueda, filtros, orden álbum, edición inline, validación
+21. **Dashboard** — `DashboardView.tsx` con 4 métricas, progreso global y desglose por equipo
+22. **Orden álbum** — `albumOrder.ts` con grupos, índice O(1), banderas y etiquetas
+23. **Banderas emoji** en todas las vistas (Matriz, CRUD, Dashboard, Catálogo)
+24. **Diseño FIFA 2026** — paleta Panini aplicada a headers y spinners
+25. **Deploy** — GitHub (`mandresjacome/panini-sticker-collection`) + Vercel (URL pública)
+26. **`vercel.json`** — rewrite SPA para que React Router funcione en producción
 
 ---
 
-## Tareas Pendientes 🔲
+## Tareas Pendientes / Ideas Futuras 💡
 
-| # | Tarea | Descripción |
-|---|---|---|
-| 19 | **Limpieza de DB (recomendado)** | `UPDATE stickers SET estado = 'D' WHERE estado IN ('R', 'V');` en SQL Editor Supabase |
-| 20 | **Vista CRUD** | Tabla con filtros (código, equipo, estado) + formulario inline (cantidad + observaciones) — ruta `/admin/crud` |
-| 21 | **Dashboard** | Chips Faltan/Disponibles, suma de unidades disponibles, desglose por equipo — ruta `/admin/dashboard` |
-| 22 | **Deploy** | GitHub repo privado + Vercel + variables `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` |
+| Idea | Descripción |
+|---|---|
+| Virtualización | Activar TanStack Virtual en MatrixView/CRUDView si la performance lo requiere con 994 ítems |
+| Filtro por grupo | En CatalogView y CRUDView, añadir selector de grupo (A–L) además de equipo |
+| Notificación WhatsApp | Botón en catálogo que genera mensaje prearmado con la lista de láminas seleccionadas |
+| PWA | Agregar manifest + service worker para uso offline |
+| Modo oscuro completo | Extender el fondo `#0a0a14` a las vistas internas del admin |
 
 ---
 
