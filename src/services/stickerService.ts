@@ -7,7 +7,7 @@
  */
 
 import { supabase } from "../lib/supabaseClient";
-import type { Sticker, StickerStatus, StickersMap } from "../types";
+import type { Sticker, StickerStatus, StickerCategoryOverride, StickersMap } from "../types";
 
 // ---------------------------------------------------------------------------
 // Tipos internos
@@ -24,6 +24,8 @@ interface StickerRow {
   estado:      StickerStatus;
   cantidad:    number;
   observacion: string | null;
+  /** Override manual: 'TOP' | 'GOAT' | null */
+  categoria:   StickerCategoryOverride | null;
   updated_at:  string;
   updated_by:  string | null;
 }
@@ -56,6 +58,8 @@ function rowToSticker(row: StickerRow): Sticker {
     status:     finalStatus,
     quantity,
     notes:      row.observacion ?? undefined,
+    // null de la DB se mantiene como null (sin override = auto-derivado en frontend)
+    categoria:  row.categoria ?? null,
     updated_at: row.updated_at,
     updated_by: row.updated_by ?? undefined,
   };
@@ -155,7 +159,7 @@ export async function cycleNextStatus(
  */
 export async function updateSticker(
   code: string,
-  fields: Partial<Pick<Sticker, "status" | "quantity" | "notes">>
+  fields: Partial<Pick<Sticker, "status" | "quantity" | "notes" | "categoria">>
 ): Promise<Sticker> {
   // Si vienen status y quantity juntos, validar la combinación
   if (fields.status !== undefined && fields.quantity !== undefined) {
@@ -164,9 +168,11 @@ export async function updateSticker(
 
   // Construir el objeto de actualización en snake_case para Supabase
   const update: Record<string, unknown> = {};
-  if (fields.status   !== undefined) update.estado     = fields.status;
-  if (fields.quantity !== undefined) update.cantidad   = fields.quantity;
-  if (fields.notes    !== undefined) update.observacion = fields.notes;
+  if (fields.status    !== undefined) update.estado     = fields.status;
+  if (fields.quantity  !== undefined) update.cantidad   = fields.quantity;
+  if (fields.notes     !== undefined) update.observacion = fields.notes;
+  // categoria puede ser 'TOP' | 'GOAT' | null (null borra el override manual)
+  if ("categoria" in fields)          update.categoria  = fields.categoria ?? null;
 
   const { data, error } = await supabase
     .from("stickers")

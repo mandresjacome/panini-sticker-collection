@@ -1,6 +1,6 @@
 # Avance de Desarrollo — App Láminas FIFA World Cup 2026
 
-**Fecha de última actualización:** 9 de mayo de 2026 — Sesión 5 (tarde)
+**Fecha de última actualización:** 9 de mayo de 2026 — Sesión 6 (tarde)
 
 ---
 
@@ -35,7 +35,7 @@ Todas las vistas implementadas: Matriz, CRUD, Dashboard y Catálogo público. Or
 | Tailwind CSS v4 | ✅ |
 | Zustand | ✅ |
 | TanStack Query | ✅ |
-| TanStack Virtual | ✅ instalado (disponible para virtualización futura) |
+| `xlsx-js-style` | ✅ instalado — exportación Excel con estilos de celda |
 | Supabase JS | ✅ |
 | React Router DOM | ✅ |
 
@@ -55,6 +55,8 @@ panini-sticker-collection/
 ├── src/
 │   ├── types/index.ts          ✅ Solo estados F y D (simplificado)
 │   ├── lib/supabaseClient.ts   ✅ Cliente singleton de Supabase
+│   ├── lib/albumOrder.ts       ✅ Orden canónico, banderas, grupos
+│   ├── lib/exportUtils.ts      ✅ Exportación Excel con formato Panini (xlsx-js-style)
 │   ├── services/
 │   │   ├── stickerService.ts   ✅ fetchAllStickers, cycleNextStatus, updateSticker, rowToSticker (normaliza R/V→D)
 │   │   └── catalogService.ts   ✅ Lectura pública solo estado D
@@ -103,7 +105,17 @@ panini-sticker-collection/
   - `TEAM_FLAG` — emoji de bandera por código (50 entradas completas)
   - `sortByAlbumOrder(codes)` — utilidad de ordenamiento
 
-### Supabase
+- **`vite.config.ts`** ✅ — `optimizeDeps.include: ['xlsx-js-style']` para forzar pre-bundling del paquete CJS
+
+### Utilidades de exportación
+- **`src/lib/exportUtils.ts`** ✅ — `exportAvailableStickersToExcel(stickers, filename?)`
+  - Filtra láminas con estado `D`
+  - Ordena por álbum con `naturalSortCode` (orden numérico real: 1, 2… 10, no 1, 10, 2)
+  - **Hoja "Matriz"** — una fila por equipo, columnas `0`–`20` (rango calculado con todos los stickers para que `FWC00` siempre genere la columna `0`); celdas verdes con cantidad o grises vacías; columnas Equipo/Grupo congeladas
+  - **Hoja "Resumen por Equipo"** — totales por equipo + fila TOTAL con fondo amarillo Panini
+  - Paleta visual completa: encabezados `#0A0A14` con borde inferior `#FFC72C`, filas alternas blanco/gris, texto azul/verde en columnas numéricas
+  - Nombre de archivo con timestamp: `laminas-disponibles_2026-05-09_1430.xlsx`
+  - Metadata del libro (título, autor, fecha)
 - **`src/lib/supabaseClient.ts`** ✅ — cliente singleton
 - **`supabase/migrations/001_create_tables.sql`** ✅ — esquema ejecutado
 - **`supabase/seed.sql`** ✅ — 994 láminas y 50 equipos insertados
@@ -210,7 +222,7 @@ panini-sticker-collection/
 32. **Título catálogo público** — cambiado de "Láminas FIFA World Cup 2026" a **"Láminas Panini"**
 33. **Barra de progreso eliminada** — removida de `TeamSection` (no era necesaria para la herramienta de ventas); limpieza de variables/funciones sin usar (`calcProgress`, `haveCount`, `progress`, `useMemo`)
 34. **Footer AmalfiDev** — nuevo componente `Footer.tsx` con franja de 7 colores + créditos “Desarrollado para **@n_baez1** por **AmalfiDev** · 2026”; integrado en `AdminLayout` y `CatalogView`
-34. **Footer AmalfiDev** — nuevo componente `Footer.tsx` con franja de 7 colores + créditos "Desarrollado para **@n_baez1** por **AmalfiDev** · 2026"; integrado en `AdminLayout` y `CatalogView`
+35. **Exportación a Excel** — `exportUtils.ts` con `xlsx-js-style`; botón "📥 Exportar Excel" en `DashboardView` (amarillo Panini, spinner, deshabilitado sin stock); dos hojas: Matriz horizontal + Resumen por Equipo con fila TOTAL amarilla; orden numérico natural; columna `0` siempre presente para FWC Especiales; `vite.config.ts` actualizado con `optimizeDeps`
 
 ---
 

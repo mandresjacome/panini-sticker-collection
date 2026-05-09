@@ -9,6 +9,8 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAvailableStickers, fetchPublicTeams } from "../../services/catalogService";
 import { sortByAlbumOrder, TEAM_GROUP_LABEL, TEAM_FLAG } from "../../lib/albumOrder";
+import { getStickerCategory } from "../../lib/stickerCategory";
+import { CATEGORY_META } from "../../types";
 import { Footer } from "../ui/Footer";
 import type { Sticker } from "../../types";
 
@@ -72,21 +74,27 @@ function CatalogTeamSection({ teamCode, teamName, stickers }: CatalogTeamSection
 
       {/* Grid de códigos */}
       <div className="px-4 py-3 flex flex-wrap gap-2">
-        {stickers.map((sticker) => (
-          <span
-            key={sticker.code}
-            className="inline-flex items-center px-2.5 py-1 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm font-mono font-semibold hover:bg-green-100 transition-colors"
-            title={sticker.quantity > 1 ? `${sticker.quantity} copias disponibles` : "1 copia disponible"}
-          >
-            {sticker.code}
-            {/* Indicar si hay más de 1 copia con un superíndice */}
-            {sticker.quantity > 1 && (
-              <sup className="ml-0.5 text-[10px] text-green-600 font-bold">
-                ×{sticker.quantity}
-              </sup>
-            )}
-          </span>
-        ))}
+        {stickers.map((sticker) => {
+          // Derivar la categoría visual para colorear el chip
+          const category = getStickerCategory(sticker);
+          const catMeta  = CATEGORY_META[category];
+
+          return (
+            <span
+              key={sticker.code}
+              className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-sm font-mono font-semibold transition-colors ${catMeta.bg} ${catMeta.text} border-current/20`}
+              title={`${catMeta.label}${sticker.quantity > 1 ? ` · ${sticker.quantity} copias` : ""}`}
+            >
+              {sticker.code}
+              {/* Indicar si hay más de 1 copia con un superíndice */}
+              {sticker.quantity > 1 && (
+                <sup className="ml-0.5 text-[10px] font-bold opacity-70">
+                  ×{sticker.quantity}
+                </sup>
+              )}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -278,6 +286,30 @@ export function CatalogView() {
 
       {/* ── Contenido ────────────────────────────────────────────────────── */}
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+
+        {/* ── Leyenda de categorías ─────────────────────────────────────── */}
+        {!search && (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              Colores por tipo de lámina
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(["GOAT", "TOP", "METALIZADA", "ESCUDO", "FOTO_EQUIPO", "PATROCINADOR", "BASICA"] as const).map((cat) => {
+                const meta = CATEGORY_META[cat];
+                return (
+                  <span
+                    key={cat}
+                    className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${meta.bg} ${meta.text}`}
+                  >
+                    {cat === "GOAT" ? "🐐" : cat === "TOP" ? "⭐" : null}
+                    {cat === "GOAT" || cat === "TOP" ? " " : ""}
+                    {meta.label}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Resultado de búsqueda */}
         {search && (

@@ -10,8 +10,9 @@
 
 import { createPortal } from "react-dom";
 import { useState, useEffect, useRef } from "react";
-import type { Sticker, StickerStatus } from "../../types";
-import { STATUS_META } from "../../types";
+import type { Sticker, StickerStatus, StickerCategoryOverride } from "../../types";
+import { STATUS_META, CATEGORY_META } from "../../types";
+import { getStickerCategory } from "../../lib/stickerCategory";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -31,13 +32,13 @@ interface StickerContextMenuProps {
   onClose: () => void;
 
   /**
-   * @description Aplica la actualización de estado/cantidad.
+   * @description Aplica la actualización de estado/cantidad/categoria.
    * @param code    - Código de la lámina
    * @param fields  - Campos a actualizar
    */
   onUpdate: (
     code: string,
-    fields: Partial<Pick<Sticker, "status" | "quantity">>
+    fields: Partial<Pick<Sticker, "status" | "quantity" | "categoria">>
   ) => Promise<void>;
 }
 
@@ -76,6 +77,9 @@ export function StickerContextMenu({
 
   /** true mientras se espera respuesta de Supabase */
   const [isApplying, setIsApplying] = useState(false);
+
+  /** Categoría actual derivada de la lámina (para mostrar estado activo en el menú) */
+  const currentCategory = getStickerCategory(sticker);
 
   /**
    * Posición ajustada para no salirse del viewport.
@@ -148,6 +152,22 @@ export function StickerContextMenu({
     }
   }
 
+  /**
+   * @description Asigna o quita el override manual de categoría (TOP / GOAT / null).
+   * null = volver a auto-derivado según equipo y número de código.
+   * @param categoria - Categoría a asignar, o null para quitar el override
+   */
+  async function handleSetCategoria(categoria: StickerCategoryOverride | null) {
+    if (isApplying) return;
+    setIsApplying(true);
+    try {
+      await onUpdate(sticker.code, { categoria });
+      onClose();
+    } finally {
+      setIsApplying(false);
+    }
+  }
+
   return createPortal(
     <div
       ref={menuRef}
@@ -163,6 +183,12 @@ export function StickerContextMenu({
           className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${(STATUS_META[sticker.status] ?? STATUS_META["F"]).color}`}
         >
           {(STATUS_META[sticker.status] ?? STATUS_META["F"]).label}
+        </span>
+        {/* Badge de categoría actual en el encabezado */}
+        <span
+          className={`text-[10px] px-1.5 py-0.5 rounded font-bold ml-auto ${CATEGORY_META[currentCategory].bg} ${CATEGORY_META[currentCategory].text}`}
+        >
+          {CATEGORY_META[currentCategory].label}
         </span>
       </div>
 
@@ -251,6 +277,60 @@ export function StickerContextMenu({
           </div>
         </div>
 
+      </div>
+
+      {/* ── Sección de categoría especial ─────────────────────────────── */}
+      <div className="px-2 pb-2 border-t border-gray-100 pt-2">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-1 mb-1">
+          Categoría especial
+        </p>
+        <div className="flex gap-1">
+
+          {/* Botón TOP */}
+          <button
+            onClick={() =>
+              handleSetCategoria(sticker.categoria === "TOP" ? null : "TOP")
+            }
+            disabled={isApplying}
+            className={[
+              "flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold transition-all",
+              "disabled:opacity-50",
+              sticker.categoria === "TOP"
+                ? "bg-purple-500 text-white ring-2 ring-purple-300"
+                : "bg-purple-50 text-purple-700 hover:bg-purple-100",
+            ].join(" ")}
+            title={sticker.categoria === "TOP" ? "Quitar TOP" : "Marcar como TOP"}
+          >
+            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_META.TOP.dot}`} />
+            ⭐ TOP
+            {sticker.categoria === "TOP" && (
+              <span className="text-[9px] opacity-80">✕ quitar</span>
+            )}
+          </button>
+
+          {/* Botón GOAT */}
+          <button
+            onClick={() =>
+              handleSetCategoria(sticker.categoria === "GOAT" ? null : "GOAT")
+            }
+            disabled={isApplying}
+            className={[
+              "flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold transition-all",
+              "disabled:opacity-50",
+              sticker.categoria === "GOAT"
+                ? "bg-yellow-400 text-yellow-900 ring-2 ring-yellow-300"
+                : "bg-yellow-50 text-yellow-700 hover:bg-yellow-100",
+            ].join(" ")}
+            title={sticker.categoria === "GOAT" ? "Quitar GOAT" : "Marcar como GOAT"}
+          >
+            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_META.GOAT.dot}`} />
+            🐐 GOAT
+            {sticker.categoria === "GOAT" && (
+              <span className="text-[9px] opacity-80">✕ quitar</span>
+            )}
+          </button>
+
+        </div>
       </div>
 
       {/* Spinner de carga mientras aplica */}

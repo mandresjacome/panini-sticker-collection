@@ -6,18 +6,20 @@
  */
 
 import { supabase } from "../lib/supabaseClient";
-import type { Sticker } from "../types";
+import type { Sticker, StickerCategoryOverride } from "../types";
 
 // ---------------------------------------------------------------------------
 // Tipo de fila de Supabase (snake_case español)
 // ---------------------------------------------------------------------------
 
 interface PublicStickerRow {
-  codigo:   string;
-  equipo:   string;
-  tipo:     string;
-  estado:   "D";         // La política RLS garantiza que siempre será "D"
-  cantidad: number;
+  codigo:    string;
+  equipo:    string;
+  tipo:      string;
+  estado:    "D";         // La política RLS garantiza que siempre será "D"
+  cantidad:  number;
+  /** Override manual de categoría (TOP/GOAT) o null si es auto-derivada */
+  categoria: StickerCategoryOverride | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -35,7 +37,7 @@ interface PublicStickerRow {
 export async function fetchAvailableStickers(): Promise<Record<string, Sticker[]>> {
   const { data, error } = await supabase
     .from("stickers")
-    .select("codigo, equipo, tipo, estado, cantidad")
+    .select("codigo, equipo, tipo, estado, cantidad, categoria")
     .eq("estado", "D")       // Filtro explícito + redundante con RLS (defensa en profundidad)
     .order("equipo")
     .order("codigo");
@@ -48,11 +50,13 @@ export async function fetchAvailableStickers(): Promise<Record<string, Sticker[]
   const grouped: Record<string, Sticker[]> = {};
   for (const row of data as PublicStickerRow[]) {
     const sticker: Sticker = {
-      code:     row.codigo,
-      team:     row.equipo,
-      type:     row.tipo,
-      status:   row.estado,
-      quantity: row.cantidad,
+      code:      row.codigo,
+      team:      row.equipo,
+      type:      row.tipo,
+      status:    row.estado,
+      quantity:  row.cantidad,
+      // Propagar el override manual para que getStickerCategory() lo use en el cliente
+      categoria: row.categoria ?? null,
     };
     if (!grouped[sticker.team]) {
       grouped[sticker.team] = [];

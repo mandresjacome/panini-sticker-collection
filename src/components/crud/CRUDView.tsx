@@ -15,8 +15,9 @@ import { useState, useMemo, useCallback, useRef } from "react";
 import { useStickers } from "../../hooks/useStickers";
 import { useTeams } from "../../hooks/useTeams";
 import { sortByAlbumOrder, TEAM_GROUP_LABEL, TEAM_FLAG, ALBUM_TEAM_INDEX } from "../../lib/albumOrder";
-import { STATUS_META, TOTAL_STICKERS } from "../../types";
-import type { Sticker, StickerStatus } from "../../types";
+import { getStickerCategory } from "../../lib/stickerCategory";
+import { STATUS_META, CATEGORY_META, TOTAL_STICKERS } from "../../types";
+import type { Sticker, StickerStatus, StickerCategoryOverride } from "../../types";
 
 // ---------------------------------------------------------------------------
 // Tipos internos
@@ -32,6 +33,11 @@ interface EditableFields {
   quantity: number;
   /** Observación/notas */
   notes: string;
+  /**
+   * Override manual de categoría. null = sin override (se auto-deriva).
+   * Solo se persiste cuando el usuario elige TOP o GOAT explicitamente.
+   */
+  categoria: StickerCategoryOverride | null;
 }
 
 /**
@@ -80,6 +86,15 @@ function EditableRow({
   const currentStatus   = dirty?.status   ?? sticker.status;
   const currentQuantity = dirty?.quantity ?? sticker.quantity;
   const currentNotes    = dirty?.notes    ?? (sticker.notes ?? "");
+  // categoria dirty: si existe en dirty la usamos, si no, tomamos la del store
+  const currentCategoria: StickerCategoryOverride | null =
+    dirty !== undefined ? dirty.categoria : (sticker.categoria ?? null);
+
+  // Categoría visual actual (auto-derivada o manual)
+  // Se calcula sobre un sticker temporal con el override dirty para preview en tiempo real
+  const previewSticker: Sticker = { ...sticker, categoria: currentCategoria };
+  const category     = getStickerCategory(previewSticker);
+  const categoryMeta = CATEGORY_META[category];
 
   // Determina si la fila tiene cambios sin guardar
   const hasPendingChanges = !!dirty;
@@ -112,6 +127,16 @@ function EditableRow({
     onEdit(sticker.code, { notes: e.target.value });
   };
 
+  /**
+   * @description Maneja el cambio del selector de categoría manual (TOP / GOAT / —).
+   * "" en el select significa "sin override" → se guarda null en DB.
+   * @param e - Evento de cambio del select
+   */
+  const handleCategoriaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value as StickerCategoryOverride | "";
+    onEdit(sticker.code, { categoria: val === "" ? null : val });
+  };
+
   const statusMeta = STATUS_META[currentStatus] ?? STATUS_META["F"];
 
   return (
@@ -132,9 +157,29 @@ function EditableRow({
         <span className="hidden sm:inline">{teamName}</span>
       </td>
 
-      {/* Tipo */}
-      <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap hidden md:table-cell">
-        {sticker.type}
+      {/* Tipo + Categoría visual */}
+      <td className="px-3 py-2 whitespace-nowrap hidden md:table-cell">
+        {/* Badge de categoría con color — muestra la categoría actual (auto o manual) */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${categoryMeta.bg} ${categoryMeta.text}`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${categoryMeta.dot} shrink-0`} />
+            {categoryMeta.label}
+          </span>
+
+          {/* Select para asignar TOP o GOAT manualmente — siempre visible */}
+          <select
+            value={currentCategoria ?? ""}
+            onChange={handleCategoriaChange}
+            title="Asignar categoría especial (TOP o GOAT) manualmente"
+            className="text-[10px] border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
+          >
+            <option value="">— Auto</option>
+            <option value="TOP">⭐ TOP</option>
+            <option value="GOAT">🐐 GOAT</option>
+          </select>
+        </div>
       </td>
 
       {/* Estado — botón toggle */}
@@ -332,9 +377,11 @@ export function CRUDView() {
         // Base: los valores dirty previos, o los originales del array
         const sticker = stickersArray.find((s) => s.code === code);
         const base: EditableFields = prev[code] ?? {
-          status:   sticker?.status   ?? "F",
-          quantity: sticker?.quantity ?? 0,
-          notes:    sticker?.notes    ?? "",
+          status:    sticker?.status   ?? "F",
+          quantity:  sticker?.quantity ?? 0,
+          notes:     sticker?.notes    ?? "",
+          // Preservar el override actual de la DB como base al editar por primera vez
+          categoria: sticker?.categoria ?? null,
         };
         return { ...prev, [code]: { ...base, ...fields } };
       });
@@ -373,9 +420,11 @@ export function CRUDView() {
 
       try {
         await updateStickerFields(code, {
-          status:   dirty.status,
-          quantity: dirty.quantity,
-          notes:    dirty.notes || undefined,
+          status:    dirty.status,
+          quantity:  dirty.quantity,
+          notes:     dirty.notes || undefined,
+          // null = borrar override manual (volver a auto-derivado)
+          categoria: dirty.categoria,
         });
 
         // Éxito → limpiar la fila del mapa de cambios pendientes
@@ -535,7 +584,7 @@ export function CRUDView() {
                 <tr className="bg-gray-50 border-b border-gray-200 text-left">
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Código</th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Equipo</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Tipo</th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Categoría</th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cantidad</th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Observaciones</th>

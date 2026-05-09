@@ -16,6 +16,41 @@
 export type StickerStatus = "F" | "D";
 
 // ---------------------------------------------------------------------------
+// Categorías de lámina (rareza / tipo visual)
+// ---------------------------------------------------------------------------
+
+/**
+ * @description Categorías manuales que se pueden asignar a una lámina.
+ * Solo TOP y GOAT se persisten en la DB; el resto se auto-deriva en frontend.
+ *
+ * - `TOP`  — Jugador destacado (morado). Asignación manual.
+ * - `GOAT` — La más valiosa/rara (dorado). Asignación manual.
+ */
+export type StickerCategoryOverride = "TOP" | "GOAT";
+
+/**
+ * @description Todas las categorías posibles de una lámina, incluyendo las auto-derivadas.
+ *
+ * | Categoría      | Origen    | Color UI  |
+ * |----------------|-----------|-----------|
+ * | `GOAT`         | Manual    | Dorado    |
+ * | `TOP`          | Manual    | Morado    |
+ * | `METALIZADA`   | Auto (FWC)| Teal      |
+ * | `ESCUDO`       | Auto (num=1)  | Rojo  |
+ * | `FOTO_EQUIPO`  | Auto (num=13) | Verde |
+ * | `PATROCINADOR` | Auto (CC) | Rojo      |
+ * | `BASICA`       | Auto (resto)  | Azul  |
+ */
+export type StickerCategory =
+  | "GOAT"
+  | "TOP"
+  | "METALIZADA"
+  | "ESCUDO"
+  | "FOTO_EQUIPO"
+  | "PATROCINADOR"
+  | "BASICA";
+
+// ---------------------------------------------------------------------------
 // Entidad Sticker
 // ---------------------------------------------------------------------------
 
@@ -43,6 +78,13 @@ export interface Sticker {
 
   /** Observaciones opcionales del coleccionista */
   notes?: string;
+
+  /**
+   * Override manual de categoría especial.
+   * null / undefined = la categoría se auto-deriva por equipo+código en getStickerCategory().
+   * Solo persiste en DB cuando el usuario asigna TOP o GOAT explícitamente.
+   */
+  categoria?: StickerCategoryOverride | null;
 
   /** Fecha y hora de la última modificación (gestionado por Supabase) */
   updated_at?: string;
@@ -133,4 +175,71 @@ export const STATUS_META: Record<
 > = {
   F: { label: "Falta",      color: "bg-gray-300 text-gray-700"  },
   D: { label: "Disponible", color: "bg-green-400 text-white"     },
+};
+
+// ---------------------------------------------------------------------------
+// Metadatos de categorías visuales
+// ---------------------------------------------------------------------------
+
+/**
+ * @description Metadatos de cada categoría: etiqueta, color de fondo, color de texto
+ * y si requiere asignación manual.
+ *
+ * Usado en StickerCell (punto de color), CRUDView (badge) y MatrixView (leyenda).
+ */
+export const CATEGORY_META: Record<
+  StickerCategory,
+  { label: string; bg: string; text: string; dot: string; manual: boolean }
+> = {
+  // ── Manuales ──────────────────────────────────────────────────────────────
+  GOAT: {
+    label:  "GOAT",
+    bg:     "bg-yellow-100",
+    text:   "text-yellow-800",
+    dot:    "bg-yellow-400",      // Dorado
+    manual: true,
+  },
+  TOP: {
+    label:  "TOP",
+    bg:     "bg-purple-100",
+    text:   "text-purple-800",
+    dot:    "bg-purple-500",      // Morado
+    manual: true,
+  },
+  // ── Auto-derivadas ─────────────────────────────────────────────────────────
+  METALIZADA: {
+    label:  "Metalizada",
+    bg:     "bg-teal-100",
+    text:   "text-teal-800",
+    dot:    "bg-teal-400",        // Agua marina / teal
+    manual: false,
+  },
+  ESCUDO: {
+    label:  "Escudo",
+    bg:     "bg-red-100",
+    text:   "text-red-800",
+    dot:    "bg-red-500",         // Rojo
+    manual: false,
+  },
+  FOTO_EQUIPO: {
+    label:  "Foto equipo",
+    bg:     "bg-green-100",
+    text:   "text-green-800",
+    dot:    "bg-green-500",       // Verde
+    manual: false,
+  },
+  PATROCINADOR: {
+    label:  "Patrocinador",
+    bg:     "bg-orange-100",
+    text:   "text-orange-800",
+    dot:    "bg-orange-400",      // Naranja/rojo Coca-Cola
+    manual: false,
+  },
+  BASICA: {
+    label:  "Básica",
+    bg:     "bg-blue-50",
+    text:   "text-blue-700",
+    dot:    "bg-blue-400",        // Azul
+    manual: false,
+  },
 };

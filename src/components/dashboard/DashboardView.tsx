@@ -59,7 +59,7 @@ export function DashboardView() {
         setIsExporting(false);
       }
     }, 0);
-  }, [stickersArray, teamsMap]);
+  }, [stickersArray]);
 
   const availableStickers: Sticker[] = useMemo(
     () => stickersArray.filter((s) => s.status === "D"),

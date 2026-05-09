@@ -1,10 +1,12 @@
 /**
  * @fileoverview Celda individual de la Vista Matriz.
  * Muestra el código de la lámina con color según estado,
- * y dispara el ciclo de estado al hacer clic.
+ * un punto de categoría en la esquina superior izquierda,
+ * y dispara el menú contextual al hacer clic.
  */
 
-import { STATUS_META } from "../../types";
+import { STATUS_META, CATEGORY_META } from "../../types";
+import { getStickerCategory } from "../../lib/stickerCategory";
 import type { Sticker } from "../../types";
 
 // ---------------------------------------------------------------------------
@@ -32,16 +34,25 @@ interface StickerCellProps {
  * @description Celda de la cuadrícula que representa una lámina individual.
  * - Clic derecho: abre menú contextual con todos los estados + selector de cantidad.
  * - Color de fondo según estado (STATUS_META).
- * - Badge de cantidad cuando hay más de 1 copia (Repetidas).
+ * - Punto de color en esquina sup-izq según categoría (CATEGORY_META).
+ * - Badge de cantidad cuando hay más de 1 copia.
  *
  * @param props.sticker      - La lámina a renderizar
  * @param props.onRightClick - Abre el menú contextual
- * @returns Elemento <button> con color y código de la lámina
+ * @returns Elemento <button> con color, código y punto de categoría
  */
 export function StickerCell({ sticker, onRightClick }: StickerCellProps) {
   // Fallback defensivo: si el status no está en STATUS_META (dato legacy de DB),
   // tratar como "F" para no crashear el render
   const meta = STATUS_META[sticker.status] ?? STATUS_META["F"];
+
+  // Derivar la categoría visual (auto o manual según campo categoria de la lámina)
+  const category     = getStickerCategory(sticker);
+  const categoryMeta = CATEGORY_META[category];
+
+  // No mostramos el punto en láminas básicas para no saturar la vista —
+  // solo en categorías que aportan información diferencial
+  const showCategoryDot = category !== "BASICA";
 
   /**
    * @description Abre el menú contextual con la posición del cursor/toque.
@@ -62,8 +73,8 @@ export function StickerCell({ sticker, onRightClick }: StickerCellProps) {
     <button
       onClick={handleOpen}
       onContextMenu={handleOpen}
-      title={`${sticker.code} — ${meta.label}${sticker.quantity > 1 ? ` (x${sticker.quantity})` : ""}\nToca para cambiar estado`}
-      aria-label={`Lámina ${sticker.code}, estado ${meta.label}. Toca para opciones.`}
+      title={`${sticker.code} — ${meta.label} · ${categoryMeta.label}${sticker.quantity > 1 ? ` (x${sticker.quantity})` : ""}\nToca para cambiar estado`}
+      aria-label={`Lámina ${sticker.code}, estado ${meta.label}, categoría ${categoryMeta.label}. Toca para opciones.`}
       className={[
         "relative flex items-center justify-center",
         "w-10 h-10 rounded text-xs font-bold",
@@ -75,6 +86,14 @@ export function StickerCell({ sticker, onRightClick }: StickerCellProps) {
       ].join(" ")}
     >
       {shortCode}
+
+      {/* Punto de categoría — esquina superior izquierda, solo en categorías especiales */}
+      {showCategoryDot && (
+        <span
+          className={`absolute top-0.5 left-0.5 w-2 h-2 rounded-full ${categoryMeta.dot}`}
+          aria-hidden="true"
+        />
+      )}
 
       {/* Badge de cantidad — pegado al borde interior superior-derecho */}
       {sticker.quantity > 1 && (

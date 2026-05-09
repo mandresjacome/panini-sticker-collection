@@ -13,7 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import { fetchAllStickers, cycleNextStatus, updateSticker } from "../services/stickerService";
 import { useStickerStore } from "../store/stickerStore";
-import type { Sticker, StickerStatus, StickersMap } from "../types";
+import type { Sticker, StickerStatus, StickerCategoryOverride, StickersMap } from "../types";
 import { TOTAL_STICKERS as TOTAL } from "../types";
 
 // Clave de caché de TanStack Query para el inventario completo
@@ -45,10 +45,10 @@ export interface UseStickersReturn {
   /** Avanza el estado de una lámina al siguiente en el ciclo F↔D */
   cycleStatus: (sticker: Sticker) => Promise<void>;
 
-  /** Actualiza campos de una lámina (cantidad, estado, notas) */
+  /** Actualiza campos de una lámina (cantidad, estado, notas, categoria) */
   updateStickerFields: (
     code: string,
-    fields: Partial<Pick<Sticker, "status" | "quantity" | "notes">>
+    fields: Partial<Pick<Sticker, "status" | "quantity" | "notes" | "categoria">>
   ) => Promise<void>;
 
   /** Conteos globales para el panel de resumen */
@@ -138,6 +138,8 @@ export function useStickers(): UseStickersReturn {
               status:     finalStatus,
               quantity:   qty,
               notes:      row.observacion as string | undefined,
+              // Propagar el override manual de categoría desde Realtime
+              categoria:  (row.categoria as StickerCategoryOverride | null) ?? null,
               updated_at: row.updated_at as string,
               updated_by: row.updated_by as string | undefined,
             };
@@ -185,7 +187,7 @@ export function useStickers(): UseStickersReturn {
       fields,
     }: {
       code: string;
-      fields: Partial<Pick<Sticker, "status" | "quantity" | "notes">>;
+      fields: Partial<Pick<Sticker, "status" | "quantity" | "notes" | "categoria">>;
     }) => updateSticker(code, fields),
 
     onSuccess: (updatedSticker) => {

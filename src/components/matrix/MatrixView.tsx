@@ -11,32 +11,59 @@ import { useTeams } from "../../hooks/useTeams";
 import { TeamSection } from "./TeamSection";
 import { StickerContextMenu } from "./StickerContextMenu";
 import { ALBUM_GROUP_ORDER } from "../../lib/albumOrder";
-import { STATUS_META } from "../../types";
-import type { Sticker, StickerStatus } from "../../types";
+import { STATUS_META, CATEGORY_META } from "../../types";
+import type { Sticker, StickerStatus, StickerCategory } from "../../types";
 
 // ---------------------------------------------------------------------------
 // Componente de leyenda
 // ---------------------------------------------------------------------------
 
 /**
- * @description Leyenda de colores del estado de las láminas.
- * @returns Fila de chips con cada estado y su color
+ * @description Leyenda de estados y categorías de láminas.
+ * @returns Filas de chips con cada estado/categoría y su color
  */
 function StatusLegend() {
   const entries = Object.entries(STATUS_META) as [StickerStatus, (typeof STATUS_META)[StickerStatus]][];
+
+  // Todas las categorías en el orden visual correcto (manuales primero)
+  const categoryOrder: StickerCategory[] = [
+    "GOAT", "TOP", "METALIZADA", "ESCUDO", "FOTO_EQUIPO", "PATROCINADOR", "BASICA",
+  ];
+
   return (
-    <div className="flex flex-wrap gap-2 items-center">
-      <span className="text-xs text-gray-500 font-medium mr-1">Estados:</span>
-      {entries.map(([status, meta]) => (
-        <span
-          key={status}
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${meta.color}`}
-        >
-          <span className="font-mono">{status}</span>
-          <span className="opacity-75">·</span>
-          {meta.label}
-        </span>
-      ))}
+    <div className="space-y-2">
+      {/* Leyenda de estados */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-xs text-gray-500 font-medium w-16 shrink-0">Estados:</span>
+        {entries.map(([status, meta]) => (
+          <span
+            key={status}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${meta.color}`}
+          >
+            <span className="font-mono">{status}</span>
+            <span className="opacity-75">·</span>
+            {meta.label}
+          </span>
+        ))}
+      </div>
+
+      {/* Leyenda de categorías — punto de color */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-xs text-gray-500 font-medium w-16 shrink-0">Puntos:</span>
+        {categoryOrder.filter((c) => c !== "BASICA").map((cat) => {
+          const meta = CATEGORY_META[cat];
+          return (
+            <span
+              key={cat}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${meta.bg} ${meta.text}`}
+            >
+              <span className={`w-2 h-2 rounded-full ${meta.dot}`} />
+              {meta.label}
+              {meta.manual && <span className="opacity-60 text-[9px]">manual</span>}
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
 }
