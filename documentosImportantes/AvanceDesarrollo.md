@@ -106,7 +106,6 @@ panini-sticker-collection/
 - **`src/lib/supabaseClient.ts`** ✅ — cliente singleton
 - **`supabase/migrations/001_create_tables.sql`** ✅ — esquema ejecutado
 - **`supabase/seed.sql`** ✅ — 994 láminas y 50 equipos insertados
-- **`supabase/seed.sql`** ✅ — 994 láminas y 50 equipos insertados
 
 ### Servicios (lógica de negocio)
 - **`src/services/stickerService.ts`** ✅
@@ -134,7 +133,7 @@ panini-sticker-collection/
 - **`src/components/matrix/TeamSection.tsx`** ✅ — colapsable, bandera emoji, barra de progreso por equipo
 - **`src/components/matrix/MatrixView.tsx`** ✅ — grupos del álbum con separadores, chips Faltan/Disponibles
 - **`src/components/matrix/StickerContextMenu.tsx`** ✅ — menú Portal F↔D + selector −N+
-- **`src/components/crud/CRUDView.tsx`** ✅ — tabla con búsqueda, filtro por equipo/estado, ordenada por álbum, edición inline, validación de invariante
+- **`src/components/crud/CRUDView.tsx`** ✅ — tabla con búsqueda, filtro por equipo/estado, ordenada por álbum, edición inline, validación de invariante *(nav oculto — reservado para feature de fotos)*
 - **`src/components/dashboard/DashboardView.tsx`** ✅ — 4 métricas card, barra de progreso global, desglose por equipo ordenado por álbum
 
 ---
@@ -201,10 +200,24 @@ panini-sticker-collection/
 24. **Diseño FIFA 2026** — paleta Panini aplicada a headers y spinners
 25. **Deploy** — GitHub (`mandresjacome/panini-sticker-collection`) + Vercel (URL pública)
 26. **`vercel.json`** — rewrite SPA para que React Router funcione en producción
+27. **CRUD oculto del nav** — link `✏️ Editar` comentado, ruta `/admin/crud` sigue viva para la feature de fotos
 
 ---
 
 ## Tareas Pendientes / Ideas Futuras 💡
+
+### 🖼️ Feature: Foto de lámina (próxima prioridad)
+
+El CRUD (`/admin/crud`) está reservado para esta funcionalidad. Pasos planificados:
+
+1. **Supabase Storage** — crear bucket `sticker-photos` (público, lectura anon)
+2. **Migración DB** — agregar columna `foto_url TEXT` a la tabla `stickers`
+3. **CRUD admin** — en cada fila, botón para subir imagen → guarda URL en `foto_url`
+4. **Catálogo público** — al hover (desktop) o tap (móvil) sobre una lámina → modal con la foto + código + cantidad disponible
+5. **Matriz admin** — mismo modal en `StickerCell` para referencia visual
+6. **Reactiva el link del nav** — descomentar `AdminNavLink` en `AdminLayout.tsx`
+
+### Otras ideas
 
 | Idea | Descripción |
 |---|---|
