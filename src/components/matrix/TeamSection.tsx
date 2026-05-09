@@ -4,7 +4,7 @@
  * y barra de progreso. Colapsable para manejar el espacio en pantalla.
  */
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { StickerCell } from "./StickerCell";
 import { TEAM_FLAG } from "../../lib/albumOrder";
 import type { Sticker } from "../../types";
@@ -25,18 +25,6 @@ interface TeamSectionProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * @description Calcula el porcentaje de completitud de un equipo.
- * Fórmula: (D + R + V) / total * 100
- * @param stickers - Lista de láminas del equipo
- * @returns Porcentaje de completitud (0-100)
- */
-function calcProgress(stickers: Sticker[]): number {
-  if (stickers.length === 0) return 0;
-  const have = stickers.filter((s) => s.status !== "F").length;
-  return Math.round((have / stickers.length) * 100);
-}
-
 // ---------------------------------------------------------------------------
 // Componente
 // ---------------------------------------------------------------------------
@@ -54,12 +42,6 @@ function calcProgress(stickers: Sticker[]): number {
 export function TeamSection({ teamCode, teamName, stickers, onRightClick }: TeamSectionProps) {
   /** Controla si la sección está expandida o colapsada */
   const [expanded, setExpanded] = useState(true);
-
-  /** Progreso del equipo — recalcular solo si cambian los stickers */
-  const progress = useMemo(() => calcProgress(stickers), [stickers]);
-
-  /** Conteo de cuántas láminas se tienen (no-F) para el tooltip */
-  const haveCount = stickers.filter((s) => s.status !== "F").length;
 
   const flag = TEAM_FLAG[teamCode] ?? "🌐";
 
