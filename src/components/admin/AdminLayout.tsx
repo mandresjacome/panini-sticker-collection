@@ -68,7 +68,8 @@ export function AdminLayout() {
           {/* Navegación entre vistas */}
           <nav className="flex items-center gap-1" aria-label="Navegación del panel admin">
             <AdminNavLink to="/admin" label="📋 Matriz" end />
-            <AdminNavLink to="/admin/crud" label="✏️ Editar" />
+            {/* ✏️ Editar — oculto temporalmente, se activa cuando se agregue foto de lámina */}
+            {/* <AdminNavLink to="/admin/crud" label="✏️ Editar" /> */}
             <AdminNavLink to="/admin/dashboard" label="📊 Dashboard" />
           </nav>
 
