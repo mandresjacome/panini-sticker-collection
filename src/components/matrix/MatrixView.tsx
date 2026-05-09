@@ -146,11 +146,11 @@ export function MatrixView() {
         return (
           <div key={group.label} className="space-y-2">
             {/* Encabezado de grupo */}
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">
+            <div className="flex items-center gap-3 pt-2">
+              <span className="text-xs font-black text-gray-700 uppercase tracking-widest whitespace-nowrap bg-gray-200 px-2 py-0.5 rounded">
                 {group.label}
               </span>
-              <div className="flex-1 h-px bg-gray-200" />
+              <div className="flex-1 h-px bg-gray-300" />
             </div>
 
             {/* Un TeamSection por cada equipo del grupo */}

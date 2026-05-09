@@ -59,7 +59,7 @@ function CatalogTeamSection({ teamCode, teamName, stickers }: CatalogTeamSection
             )}
             {/* Etiqueta de grupo — visible cuando hay coincidencia de búsqueda */}
             {groupLabel && (
-              <span className="ml-2 text-xs text-gray-400 hidden sm:inline">· {groupLabel}</span>
+              <span className="ml-2 text-xs text-gray-400">· {groupLabel}</span>
             )}
           </div>
         </div>
