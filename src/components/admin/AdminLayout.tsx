@@ -63,8 +63,8 @@ export function AdminLayout() {
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-xl leading-none flex-shrink-0">🏆</span>
               <div className="min-w-0">
-                <h1 className="text-sm font-black text-white leading-tight tracking-tight truncate">Panel Vendedor</h1>
-                <p className="text-[10px] text-[#FFC72C] font-semibold tracking-wide uppercase">FIFA World Cup 2026</p>
+                <h1 className="text-sm font-black leading-tight tracking-tight truncate" style={{ color: '#ffffff' }}>Panel Vendedor</h1>
+                <p className="text-[10px] font-semibold tracking-wide uppercase" style={{ color: '#FFC72C' }}>FIFA World Cup 2026</p>
               </div>
             </div>
 
