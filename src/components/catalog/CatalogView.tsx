@@ -241,7 +241,7 @@ export function CatalogView() {
             {/* Título */}
             <div className="flex-1">
               <h1 className="text-xl font-black leading-tight tracking-tight" style={{ color: '#ffffff' }}>
-                🏆 Láminas FIFA World Cup 2026
+                🏆 Láminas Panini
               </h1>
               <p className="text-sm mt-0.5">
                 <span className="font-black" style={{ color: '#FFC72C' }}>{totalAvailable}</span>
