@@ -63,9 +63,6 @@ export function TeamSection({ teamCode, teamName, stickers, onRightClick }: Team
 
   const flag = TEAM_FLAG[teamCode] ?? "🌐";
 
-  // Clases de la barra de progreso: verde cuando 100%, ámbar si avanzando
-  const progressBarColor = progress === 100 ? "bg-green-500" : "bg-amber-400";
-
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
 
@@ -80,29 +77,12 @@ export function TeamSection({ teamCode, teamName, stickers, onRightClick }: Team
         <span className="text-2xl leading-none" aria-hidden="true">{flag}</span>
 
         {/* Nombre del equipo */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2">
-            <span className="font-bold text-gray-800 truncate">{teamName}</span>
-            <span className="text-xs text-gray-400 font-mono flex-shrink-0">{teamCode}</span>
-          </div>
-
-          {/* Barra de progreso */}
-          <div className="mt-1 flex items-center gap-2">
-            <div className="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${progressBarColor}`}
-                style={{ width: `${progress}%` }}
-                role="progressbar"
-                aria-valuenow={progress}
-                aria-valuemin={0}
-                aria-valuemax={100}
-              />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline gap-2">
+              <span className="font-bold text-gray-800 truncate">{teamName}</span>
+              <span className="text-xs text-gray-400 font-mono flex-shrink-0">{teamCode}</span>
             </div>
-            <span className="text-xs text-gray-500 flex-shrink-0">
-              {haveCount}/{stickers.length}
-            </span>
           </div>
-        </div>
 
         {/* Ícono chevron */}
         <span
