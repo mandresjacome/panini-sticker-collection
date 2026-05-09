@@ -7,6 +7,7 @@
 
 import { NavLink, Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { Footer } from "../ui/Footer";
 
 // ---------------------------------------------------------------------------
 // Componente
@@ -100,7 +101,7 @@ export function AdminLayout() {
       <main className="max-w-7xl mx-auto px-4 py-6">
         <Outlet />
       </main>
-    </div>
+      <Footer />    </div>
   );
 }
 

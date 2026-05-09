@@ -9,6 +9,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAvailableStickers, fetchPublicTeams } from "../../services/catalogService";
 import { sortByAlbumOrder, TEAM_GROUP_LABEL, TEAM_FLAG } from "../../lib/albumOrder";
+import { Footer } from "../ui/Footer";
 import type { Sticker } from "../../types";
 
 // ---------------------------------------------------------------------------
@@ -307,10 +308,12 @@ export function CatalogView() {
         ))}
 
         {/* Footer con aviso */}
-        <footer className="text-center text-xs text-gray-400 py-8">
+        <p className="text-center text-xs text-gray-400 py-6">
           El catálogo se actualiza automáticamente cada 60 segundos.
-        </footer>
+        </p>
       </main>
+
+      <Footer />
     </div>
   );
 }
