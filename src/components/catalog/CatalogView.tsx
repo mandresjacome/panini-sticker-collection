@@ -15,7 +15,7 @@ import { Footer } from "../ui/Footer";
 import { QuotePanel } from "../ui/QuotePanel";
 import { useCategoryPrices } from "../../hooks/useCategoryPrices";
 import { useQuote } from "../../hooks/useQuote";
-import type { Sticker } from "../../types";
+import type { Sticker, StickerCategory, CategoryPricesMap } from "../../types";
 
 // ---------------------------------------------------------------------------
 // Tipos internos
@@ -29,13 +29,15 @@ interface CatalogTeamSectionProps {
   /** Retorna la cantidad seleccionada (0 si no está en cotización) */
   getQuantity: (code: string) => number;
   onToggle: (sticker: Sticker) => void;
+  /** Mapa de precios por categoría para mostrar en cada lámina */
+  categoryPrices: CategoryPricesMap;
 }
 
 // ---------------------------------------------------------------------------
 // Sub-componente: sección de un equipo
 // ---------------------------------------------------------------------------
 
-function CatalogTeamSection({ teamCode, teamName, stickers, isSelected, getQuantity, onToggle }: CatalogTeamSectionProps) {
+function CatalogTeamSection({ teamCode, teamName, stickers, isSelected, getQuantity, onToggle, categoryPrices }: CatalogTeamSectionProps) {
   const groupLabel = TEAM_GROUP_LABEL[teamCode];
   const flag = TEAM_FLAG[teamCode] ?? "🌐";
 
@@ -61,8 +63,9 @@ function CatalogTeamSection({ teamCode, teamName, stickers, isSelected, getQuant
 
       <div className="px-4 py-3 flex flex-wrap gap-2">
         {stickers.map((sticker) => {
-          const category = getStickerCategory(sticker);
+          const category = getStickerCategory(sticker) as StickerCategory;
           const catMeta  = CATEGORY_META[category];
+          const price    = categoryPrices[category];
           const selected = isSelected(sticker.code);
           const qty      = getQuantity(sticker.code);
           // Cuando qty === stock, el próximo clic saca la lámina del carrito
@@ -73,7 +76,7 @@ function CatalogTeamSection({ teamCode, teamName, stickers, isSelected, getQuant
               key={sticker.code}
               onClick={() => onToggle(sticker)}
               className={`
-                inline-flex items-center px-2.5 py-1 rounded-lg border
+                inline-flex flex-col items-center px-2.5 py-1.5 rounded-lg border
                 text-sm font-mono font-semibold transition-all
                 ${selected
                   ? "bg-black text-white border-[#FFC72C] border-2 scale-105 shadow-md"
@@ -89,16 +92,21 @@ function CatalogTeamSection({ teamCode, teamName, stickers, isSelected, getQuant
               }
               aria-pressed={selected}
             >
-              {/* Muestra "2×" cuando hay más de 1 unidad seleccionada */}
-              {selected && (
-                <span className="mr-1 text-[#FFC72C] font-black">
-                  {qty}×
+              {/* Fila superior: badge de cantidad + código + stock */}
+              <span className="flex items-center gap-0.5">
+                {selected && (
+                  <span className="mr-1 text-[#FFC72C] font-black">{qty}×</span>
+                )}
+                {sticker.code}
+                {!selected && sticker.quantity > 1 && (
+                  <sup className="ml-0.5 text-[10px] font-bold opacity-70">×{sticker.quantity}</sup>
+                )}
+              </span>
+              {/* Precio debajo del código — solo cuando no está seleccionada */}
+              {!selected && price > 0 && (
+                <span className="text-[9px] font-bold opacity-55 mt-0.5 leading-none">
+                  ${price.toLocaleString("es-CO")}
                 </span>
-              )}
-              {sticker.code}
-              {/* Stock disponible (solo cuando NO está en cotización y hay más de 1 copia) */}
-              {!selected && sticker.quantity > 1 && (
-                <sup className="ml-0.5 text-[10px] font-bold opacity-70">×{sticker.quantity}</sup>
               )}
             </button>
           );
@@ -231,7 +239,7 @@ export function CatalogView() {
   return (
     <div
       className="min-h-screen bg-gray-100"
-      style={{ paddingBottom: selectedCount > 0 ? "10rem" : "1.5rem" }}
+      style={{ paddingBottom: "5rem" }}
     >
       <header className="bg-[#0a0a14] sticky top-0 z-10">
         <div className="h-1 w-full flex">
@@ -282,26 +290,36 @@ export function CatalogView() {
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-4">
         {!search && (
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-              Colores por tipo de lámina
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-4 pb-5">
+            <p className="text-sm font-bold text-gray-600 uppercase tracking-widest mb-1">
+              Guía de tipos de lámina
             </p>
-            <div className="flex flex-wrap gap-2 mb-3">
+            <p className="text-xs text-gray-400 mt-1 mb-6">
+              Cada color es una categoría. El precio ya está incluido — toca una lámina para ver el total en tiempo real.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3 pt-2 mb-5">
               {(["GOAT", "TOP", "METALIZADA", "ESCUDO", "FOTO_EQUIPO", "PATROCINADOR", "BASICA"] as const).map((cat) => {
                 const meta = CATEGORY_META[cat];
+                const price = categoryPrices[cat];
                 return (
                   <span
                     key={cat}
-                    className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${meta.bg} ${meta.text}`}
+                    className={`inline-flex flex-col items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${meta.bg} ${meta.text}`}
                   >
-                    {cat === "GOAT" ? "🐐 " : cat === "TOP" ? "⭐ " : null}
-                    {meta.label}
+                    <span>
+                      {cat === "GOAT" ? "🐐 " : cat === "TOP" ? "⭐ " : null}
+                      {meta.label}
+                    </span>
+                    {/* Precio visible: "Desde $X.XXX" para que el cliente sepa antes de cotizar */}
+                    <span className="font-black mt-0.5">
+                      {price > 0 ? `Desde $${price.toLocaleString("es-CO")}` : "Consultar"}
+                    </span>
                   </span>
                 );
               })}
             </div>
-            <p className="text-xs text-gray-500 border-t border-gray-100 pt-2">
-              💡 Tocá cualquier lámina para armar tu cotización. El total aparece abajo.
+            <p className="text-sm text-gray-600 font-medium border-t border-gray-100 pt-3">
+              🏷️ <span className="font-bold text-gray-700">¡Ya puedes cotizar!</span> Toca cualquier lámina para agregarla a tu pedido. El resumen aparece abajo.
             </p>
           </div>
         )}
@@ -331,6 +349,7 @@ export function CatalogView() {
             isSelected={isSelected}
             getQuantity={getQuantity}
             onToggle={toggle}
+            categoryPrices={categoryPrices}
           />
         ))}
 
@@ -341,7 +360,8 @@ export function CatalogView() {
 
       <Footer />
 
-      {selectedCount > 0 && (
+      {/* ── Barra inferior — siempre visible ─────────────────────────────── */}
+      {selectedCount > 0 ? (
         <QuotePanel
           count={totalUnits}
           total={total}
@@ -350,6 +370,24 @@ export function CatalogView() {
           expanded={quoteExpanded}
           onToggleExpand={() => setQuoteExpanded((v) => !v)}
         />
+      ) : (
+        // CTA fija cuando no hay nada seleccionado — guía al usuario sin necesidad de leer
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
+          <div
+            className="w-full max-w-5xl mx-0 sm:mx-4 sm:mb-4 pointer-events-auto
+                       bg-[#0a0a14] border border-[#FFC72C]/40 sm:rounded-2xl
+                       shadow-2xl overflow-hidden"
+          >
+            <div className="flex items-center justify-center gap-3 px-5 py-4">
+              {/* Flecha animada apuntando hacia arriba — atrae la mirada */}
+              <span className="text-[#FFC72C] text-xl animate-bounce">👆</span>
+              <p className="text-white font-semibold text-sm">
+                <span className="text-[#FFC72C] font-black">¡Ya puedes cotizar!</span> Toca una lámina para empezar
+              </p>
+              <span className="text-[#FFC72C] text-xl animate-bounce">👆</span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

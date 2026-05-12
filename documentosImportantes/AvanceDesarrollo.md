@@ -1,6 +1,6 @@
 # Avance de Desarrollo — App Láminas FIFA World Cup 2026
 
-**Fecha de última actualización:** 12 de mayo de 2026 — Sesión 9
+**Fecha de última actualización:** 12 de mayo de 2026 — Sesión 10
 
 ---
 
@@ -150,7 +150,7 @@ panini-sticker-collection/
 - **`src/components/ui/LoginForm.tsx`** ✅ — formulario de login con diseño FIFA 2026
 - **`src/components/ui/Footer.tsx`** ✅ — footer compartido con créditos AmalfiDev, franja 7 colores, texto `@n_baez1` en amarillo Panini
 - **`src/components/admin/AdminLayout.tsx`** ✅ — layout protegido, header oscuro + franja multicolor + nav amarillo activo
-- **`src/components/catalog/CatalogView.tsx`** ✅ — catálogo público, ruta `/`, solo láminas D, ordenado por álbum con banderas y etiqueta de grupo; chips de color por categoría; leyenda de categorías visible (sin búsqueda activa); **chips seleccionables para cotización**; **panel flotante `QuotePanel`** con contador + total + botón WhatsApp + copia al portapapeles + previsualización del mensaje; indicador de selección en el header
+- **`src/components/catalog/CatalogView.tsx`** ✅ — catálogo público, ruta `/`, solo láminas D, ordenado por álbum con banderas y etiqueta de grupo; chips de color por categoría con precio debajo (`flex-col`); **leyenda rediseñada** con título, descripción y chips centrados que muestran "Desde $X.XXX" por categoría; **chips seleccionables para cotización**; **barra CTA siempre visible** en la parte inferior ("¡Ya puedes cotizar! Toca una lámina para empezar" cuando el carrito está vacío, se transforma en `QuotePanel` cuando hay ítems); panel flotante `QuotePanel` con contador + total + botón WhatsApp + copia al portapapeles + previsualización del mensaje; indicador de selección en el header; **español colombiano** (puedes/Toca)
 - **`src/components/matrix/StickerCell.tsx`** ✅ — celda con color de estado, badge cantidad, clic derecho; punto de color de categoría en esquina sup-izq (solo categorías no-Básicas)
 - **`src/components/matrix/TeamSection.tsx`** ✅ — colapsable, bandera emoji (sin barra de progreso)
 - **`src/components/matrix/MatrixView.tsx`** ✅ — grupos del álbum con separadores, chips Faltan/Disponibles; leyenda extendida con fila de puntos de categoría; **conecta `useCategoryPrices`** y pasa `categoryPrices` + `onUpdateCategoryPrice` al `StickerContextMenu`
@@ -259,7 +259,7 @@ panini-sticker-collection/
 ### 💰 Feature: Cotizaciones ✅ IMPLEMENTADO (Catálogo público + Admin)
 
 Funciona en ambas vistas. Ideas de mejora futura:
-- Mostrar el precio de cada lámina en el chip del catálogo
+- ~~Mostrar el precio de cada lámina en el chip del catálogo~~ ✅ Implementado (sesión 10)
 - Historial de cotizaciones guardadas en localStorage
 
 38. **Cotizaciones desde el catálogo público** — feature completa para que el cliente arme su lista de láminas con total
@@ -282,6 +282,13 @@ El CRUD (`/admin/crud`) está reservado para esta funcionalidad. Pasos planifica
 4. **Catálogo público** — al hover (desktop) o tap (móvil) sobre una lámina → modal con la foto + código + cantidad disponible
 5. **Matriz admin** — mismo modal en `StickerCell` para referencia visual
 6. **Reactiva el link del nav** — descomentar `AdminNavLink` en `AdminLayout.tsx`
+
+40. **Barra CTA siempre visible en CatalogView** — reemplaza el `QuotePanel` condicional por un ternario: cuando `selectedCount === 0` muestra una barra fija `fixed bottom-0` con el mensaje "¡Ya puedes cotizar! Toca una lámina para empezar" (con emojis animados `animate-bounce`); cuando hay ítems seleccionados muestra el `QuotePanel` como antes
+41. **Leyenda de categorías rediseñada** — nuevo bloque con título grande (`text-sm font-bold uppercase tracking-widest`), descripción explicativa, chips centrados con `flex flex-wrap justify-center gap-3`; cada chip muestra la etiqueta de la categoría y su precio "Desde $X.XXX" tomado de `categoryPrices` en tiempo real (fallback "Consultar" si precio = 0)
+42. **Precio por lámina en el botón del catálogo** — cada chip de lámina usa `inline-flex flex-col items-center` para mostrar el código en la fila superior y el precio (`$X.XXX`) en una segunda línea debajo, con separación `mt-0.5`; el precio se toma de `sticker.precio ?? categoryPrices[cat]`; solo se muestra cuando la lámina no está seleccionada y `price > 0`
+43. **Español colombiano en toda la UI del catálogo** — reemplazados todos los voseos ("podés"/"Tocá") por tuteo colombiano ("puedes"/"Toca")
+
+---
 
 ### Otras ideas
 
