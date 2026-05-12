@@ -65,7 +65,12 @@ function CatalogTeamSection({ teamCode, teamName, stickers, isSelected, getQuant
         {stickers.map((sticker) => {
           const category = getStickerCategory(sticker) as StickerCategory;
           const catMeta  = CATEGORY_META[category];
-          const price    = categoryPrices[category];
+          // Precio efectivo: override individual tiene prioridad sobre el default de categoría.
+          // Misma lógica que useQuote.ts para consistencia precio cotización = precio visible.
+          const price =
+            sticker.precio !== null && sticker.precio !== undefined
+              ? sticker.precio
+              : (categoryPrices[category] ?? 0);
           const selected = isSelected(sticker.code);
           const qty      = getQuantity(sticker.code);
           // Cuando qty === stock, el próximo clic saca la lámina del carrito
