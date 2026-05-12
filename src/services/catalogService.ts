@@ -20,6 +20,8 @@ interface PublicStickerRow {
   cantidad:  number;
   /** Override manual de categoría (TOP/GOAT) o null si es auto-derivada */
   categoria: StickerCategoryOverride | null;
+  /** Precio individual de venta (null = usar default de la categoría) */
+  precio:    number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -37,7 +39,7 @@ interface PublicStickerRow {
 export async function fetchAvailableStickers(): Promise<Record<string, Sticker[]>> {
   const { data, error } = await supabase
     .from("stickers")
-    .select("codigo, equipo, tipo, estado, cantidad, categoria")
+    .select("codigo, equipo, tipo, estado, cantidad, categoria, precio")
     .eq("estado", "D")       // Filtro explícito + redundante con RLS (defensa en profundidad)
     .order("equipo")
     .order("codigo");
@@ -57,6 +59,8 @@ export async function fetchAvailableStickers(): Promise<Record<string, Sticker[]
       quantity:  row.cantidad,
       // Propagar el override manual para que getStickerCategory() lo use en el cliente
       categoria: row.categoria ?? null,
+      // Propagar el precio individual para la cotización (null = usar default de categoría)
+      precio:    row.precio ?? null,
     };
     if (!grouped[sticker.team]) {
       grouped[sticker.team] = [];

@@ -26,6 +26,8 @@ interface StickerRow {
   observacion: string | null;
   /** Override manual: 'TOP' | 'GOAT' | null */
   categoria:   StickerCategoryOverride | null;
+  /** Precio individual de la lámina (null = usar default de su categoría) */
+  precio:      number | null;
   updated_at:  string;
   updated_by:  string | null;
 }
@@ -60,6 +62,8 @@ function rowToSticker(row: StickerRow): Sticker {
     notes:      row.observacion ?? undefined,
     // null de la DB se mantiene como null (sin override = auto-derivado en frontend)
     categoria:  row.categoria ?? null,
+    // null = heredar precio default de la categoría; entero = precio individual
+    precio:     row.precio ?? null,
     updated_at: row.updated_at,
     updated_by: row.updated_by ?? undefined,
   };
@@ -159,7 +163,7 @@ export async function cycleNextStatus(
  */
 export async function updateSticker(
   code: string,
-  fields: Partial<Pick<Sticker, "status" | "quantity" | "notes" | "categoria">>
+  fields: Partial<Pick<Sticker, "status" | "quantity" | "notes" | "categoria" | "precio">>
 ): Promise<Sticker> {
   // Si vienen status y quantity juntos, validar la combinación
   if (fields.status !== undefined && fields.quantity !== undefined) {
@@ -173,6 +177,8 @@ export async function updateSticker(
   if (fields.notes     !== undefined) update.observacion = fields.notes;
   // categoria puede ser 'TOP' | 'GOAT' | null (null borra el override manual)
   if ("categoria" in fields)          update.categoria  = fields.categoria ?? null;
+  // precio puede ser un entero (override individual) o null (volver al default de categoría)
+  if ("precio" in fields)             update.precio     = fields.precio ?? null;
 
   const { data, error } = await supabase
     .from("stickers")

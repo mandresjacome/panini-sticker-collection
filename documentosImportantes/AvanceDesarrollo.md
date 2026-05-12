@@ -1,6 +1,6 @@
 # Avance de Desarrollo — App Láminas FIFA World Cup 2026
 
-**Fecha de última actualización:** 9 de mayo de 2026 — Sesión 6 (tarde)
+**Fecha de última actualización:** 12 de mayo de 2026 — Sesión 9
 
 ---
 
@@ -51,12 +51,14 @@ panini-sticker-collection/
 │   └── AvanceDesarrollo.md     ← Este archivo
 ├── supabase/
 │   ├── migrations/001_create_tables.sql  ✅ Ejecutado en Supabase
+│   ├── migrations/002_add_categoria_column.sql  ✅ Ejecutado — columna `categoria` TEXT (TOP/GOAT)
 │   └── seed.sql                          ✅ Ejecutado — 994 láminas en DB
 ├── src/
 │   ├── types/index.ts          ✅ Solo estados F y D (simplificado)
 │   ├── lib/supabaseClient.ts   ✅ Cliente singleton de Supabase
 │   ├── lib/albumOrder.ts       ✅ Orden canónico, banderas, grupos
 │   ├── lib/exportUtils.ts      ✅ Exportación Excel con formato Panini (xlsx-js-style)
+│   ├── lib/stickerCategory.ts  ✅ getStickerCategory() — fuente de verdad para categorías visuales
 │   ├── services/
 │   │   ├── stickerService.ts   ✅ fetchAllStickers, cycleNextStatus, updateSticker, rowToSticker (normaliza R/V→D)
 │   │   └── catalogService.ts   ✅ Lectura pública solo estado D
@@ -69,7 +71,8 @@ panini-sticker-collection/
 │   └── components/
 │       ├── ui/
 │       │   ├── LoginForm.tsx   ✅ Formulario de login
-│       │   └── Footer.tsx      ✅ Footer compartido (AmalfiDev)
+│       │   ├── Footer.tsx      ✅ Footer compartido (AmalfiDev)
+│       │   └── QuotePanel.tsx  ✅ Panel flotante de cotización (compartido catálogo + admin)
 │       ├── admin/
 │       │   └── AdminLayout.tsx ✅ Layout protegido con navegación
 │       ├── matrix/
@@ -94,7 +97,7 @@ panini-sticker-collection/
 ## Archivos Implementados
 
 ### Dominio y tipos
-- **`src/types/index.ts`** ✅ — `StickerStatus = "F" | "D"`, `Sticker`, `Team`, `StickersMap`, `TOTAL_STICKERS = 994`, `STATUS_META` (F: gris, D: verde)
+- **`src/types/index.ts`** ✅ — `StickerStatus = "F" | "D"`, `Sticker`, `Team`, `StickersMap`, `TOTAL_STICKERS = 994`, `STATUS_META` (F: gris, D: verde), `StickerCategoryOverride = "TOP" | "GOAT"`, `StickerCategory` (7 valores), `CATEGORY_META` (colores bg/text/dot por categoría), **`CategoryPricesMap`**, **`DEFAULT_CATEGORY_PRICES`** (precios base por categoría), **`precio?: number | null`** en `Sticker`
 
 ### Orden del álbum (nuevo en sesión 4)
 - **`src/lib/albumOrder.ts`** ✅ — fuente de verdad para el orden canónico
@@ -108,7 +111,9 @@ panini-sticker-collection/
 - **`vite.config.ts`** ✅ — `optimizeDeps.include: ['xlsx-js-style']` para forzar pre-bundling del paquete CJS
 
 ### Utilidades de exportación
-- **`src/lib/exportUtils.ts`** ✅ — `exportAvailableStickersToExcel(stickers, filename?)`
+- **`src/lib/exportUtils.ts`** ✅ — (ver sesión 6)
+- **`src/lib/stickerCategory.ts`** ✅ — `getStickerCategory(sticker)` — única fuente de verdad para la categoría visual
+  - Prioridad: `GOAT` (manual) → `TOP` (manual) → `METALIZADA` (FWC) → `PATROCINADOR` (CC) → `ESCUDO` (num=1) → `FOTO_EQUIPO` (num=13) → `BASICA` (resto)
   - Filtra láminas con estado `D`
   - Ordena por álbum con `naturalSortCode` (orden numérico real: 1, 2… 10, no 1, 10, 2)
   - **Hoja "Matriz"** — una fila por equipo, columnas `0`–`20` (rango calculado con todos los stickers para que `FWC00` siempre genere la columna `0`); celdas verdes con cantidad o grises vacías; columnas Equipo/Grupo congeladas
@@ -123,31 +128,34 @@ panini-sticker-collection/
 ### Servicios (lógica de negocio)
 - **`src/services/stickerService.ts`** ✅
   - `fetchAllStickers()` → `StickersMap`
-  - `rowToSticker(row)` → normaliza estados legacy `R`/`V` → `D` antes de entrar al store
+  - `rowToSticker(row)` → normaliza estados legacy R/V → D; mapea campos `categoria` y **`precio`**
   - `cycleNextStatus(code, status, quantity)` → F→D (qty=1) / D→F (qty=0)
-  - `updateSticker(code, fields)` → actualización parcial con validación de invariante
+  - `updateSticker(code, fields)` → acepta `categoria` (TOP/GOAT/null), **`precio` (number|null)** además de status/quantity/notes
   - `validateStickerState(status, quantity)` → lanza error si `status=F && quantity>0`
   - Mapeo DB (snake_case español) ↔ TypeScript (camelCase inglés)
-- **`src/services/catalogService.ts`** ✅ — lectura pública, solo `estado = 'D'`, rol anon
+- **`src/services/catalogService.ts`** ✅ — lectura pública, solo `estado = 'D'`, rol anon; incluye campos `categoria` y **`precio`** en el SELECT para cotización en el catálogo
+- **`src/services/categoryPriceService.ts`** ✅ — **NUEVO** · `fetchCategoryPrices()` → `CategoryPricesMap`; `updateCategoryPrice(category, price)` → UPSERT en tabla `category_prices`; RLS: authenticated rw, anon read
 
 ### Estado global
 - **`src/store/stickerStore.ts`** ✅ — Zustand con `StickersMap`, `upsertSticker` O(1), selectores derivados
 
 ### Hooks
 - **`src/hooks/useAuth.ts`** ✅ — sesión reactiva con `onAuthStateChange`
-- **`src/hooks/useStickers.ts`** ✅ — TanStack Query + Realtime + mutaciones + métricas derivadas
+- **`src/hooks/useStickers.ts`** ✅ — TanStack Query + Realtime + mutaciones + métricas derivadas; `updateStickerFields` acepta campo **`precio`**; Realtime handler propaga `precio`
 - **`src/hooks/useTeams.ts`** ✅ — nombres completos de equipos (staleTime 30min)
+- **`src/hooks/useCategoryPrices.ts`** ✅ — **NUEVO** · TanStack Query sobre `category_prices`; fallback a `DEFAULT_CATEGORY_PRICES` mientras carga; mutación `updateCategoryPrice` con invalidación de caché
+- **`src/hooks/useQuote.ts`** ✅ — **NUEVO** · carrito efímero de cotización; `toggle/clear/isSelected`; `quoteLines` con precio efectivo (`sticker.precio ?? categoryPrices[cat]`); `total`; `whatsappText` pre-armado con formato Panini
 
 ### Componentes
 - **`src/components/ui/LoginForm.tsx`** ✅ — formulario de login con diseño FIFA 2026
 - **`src/components/ui/Footer.tsx`** ✅ — footer compartido con créditos AmalfiDev, franja 7 colores, texto `@n_baez1` en amarillo Panini
 - **`src/components/admin/AdminLayout.tsx`** ✅ — layout protegido, header oscuro + franja multicolor + nav amarillo activo
-- **`src/components/catalog/CatalogView.tsx`** ✅ — catálogo público, ruta `/`, solo láminas D, ordenado por álbum con banderas y etiqueta de grupo
-- **`src/components/matrix/StickerCell.tsx`** ✅ — celda con color de estado, badge cantidad, clic derecho
+- **`src/components/catalog/CatalogView.tsx`** ✅ — catálogo público, ruta `/`, solo láminas D, ordenado por álbum con banderas y etiqueta de grupo; chips de color por categoría; leyenda de categorías visible (sin búsqueda activa); **chips seleccionables para cotización**; **panel flotante `QuotePanel`** con contador + total + botón WhatsApp + copia al portapapeles + previsualización del mensaje; indicador de selección en el header
+- **`src/components/matrix/StickerCell.tsx`** ✅ — celda con color de estado, badge cantidad, clic derecho; punto de color de categoría en esquina sup-izq (solo categorías no-Básicas)
 - **`src/components/matrix/TeamSection.tsx`** ✅ — colapsable, bandera emoji (sin barra de progreso)
-- **`src/components/matrix/MatrixView.tsx`** ✅ — grupos del álbum con separadores, chips Faltan/Disponibles
-- **`src/components/matrix/StickerContextMenu.tsx`** ✅ — menú Portal F↔D + selector −N+
-- **`src/components/crud/CRUDView.tsx`** ✅ — tabla con búsqueda, filtro por equipo/estado, ordenada por álbum, edición inline, validación de invariante *(nav oculto — reservado para feature de fotos)*
+- **`src/components/matrix/MatrixView.tsx`** ✅ — grupos del álbum con separadores, chips Faltan/Disponibles; leyenda extendida con fila de puntos de categoría; **conecta `useCategoryPrices`** y pasa `categoryPrices` + `onUpdateCategoryPrice` al `StickerContextMenu`
+- **`src/components/matrix/StickerContextMenu.tsx`** ✅ — menú Portal F↔D + selector −N+; sección "Categoría especial" con botones toggle ⭐ TOP / 🐐 GOAT; badge de categoría actual en encabezado del menú; **sección "💲 Precio"**: input de precio individual con botón 💾 y botón ↩ reset al default, input de precio default de la categoría con botón 💾 (afecta a todas las láminas sin override); spinner `isPriceApplying` separado del spinner de estado
+- **`src/components/crud/CRUDView.tsx`** ✅ — tabla con búsqueda, filtro por equipo/estado, ordenada por álbum, edición inline; columna "Categoría" con badge de color y select TOP/GOAT/Auto; validación de invariante
 - **`src/components/dashboard/DashboardView.tsx`** ✅ — 4 métricas card, barra de progreso global, desglose por equipo ordenado por álbum
 
 ---
@@ -155,10 +163,14 @@ panini-sticker-collection/
 ## Base de Datos (Supabase)
 
 - **URL:** `https://sdoycwmphulkydfguclx.supabase.co`
-- **Tablas:** `teams` (50 filas) + `stickers` (994 filas)
-- **RLS:** habilitado — `authenticated` puede leer/escribir; `anon` puede leer estado `D`
+- **Tablas:** `teams` (50 filas) + `stickers` (994 filas) + **`category_prices` (7 filas)**
+- **Columna `categoria`:** `TEXT CHECK (IN ('TOP','GOAT')) DEFAULT NULL` — override manual; null = auto-derivado en frontend
+- **Columna `precio` en `stickers`:** `INTEGER DEFAULT NULL` — override individual; null = heredar precio default de `category_prices`
+- **RLS:** habilitado — `authenticated` puede leer/escribir; `anon` puede leer estado `D` y tabla `category_prices`
 - **Realtime:** habilitado en tabla `stickers`
 - **Usuarios admin:** nicolas, cristian, anny, mario @panini2026.com
+
+> ✅ **Migración 003 ya ejecutada** en Supabase Studio. Tabla `category_prices` y columna `precio` activas.
 
 ---
 
@@ -223,12 +235,44 @@ panini-sticker-collection/
 33. **Barra de progreso eliminada** — removida de `TeamSection` (no era necesaria para la herramienta de ventas); limpieza de variables/funciones sin usar (`calcProgress`, `haveCount`, `progress`, `useMemo`)
 34. **Footer AmalfiDev** — nuevo componente `Footer.tsx` con franja de 7 colores + créditos “Desarrollado para **@n_baez1** por **AmalfiDev** · 2026”; integrado en `AdminLayout` y `CatalogView`
 35. **Exportación a Excel** — `exportUtils.ts` con `xlsx-js-style`; botón "📥 Exportar Excel" en `DashboardView` (amarillo Panini, spinner, deshabilitado sin stock); dos hojas: Matriz horizontal + Resumen por Equipo con fila TOTAL amarilla; orden numérico natural; columna `0` siempre presente para FWC Especiales; `vite.config.ts` actualizado con `optimizeDeps`
+36. **Categorías visuales de láminas** — nuevo sistema completo de 7 categorías con auto-derivación en frontend
+    - `src/lib/stickerCategory.ts` — `getStickerCategory()` única fuente de verdad (prioridad: GOAT → TOP → METALIZADA → PATROCINADOR → ESCUDO → FOTO_EQUIPO → BASICA)
+    - `src/types/index.ts` — `StickerCategoryOverride`, `StickerCategory`, `CATEGORY_META` (colores Tailwind por categoría)
+    - `supabase/migrations/002_add_categoria_column.sql` — columna `categoria TEXT CHECK ('TOP','GOAT') DEFAULT NULL`
+    - **Vista Matriz** — punto de color en esquina sup-izq de cada celda (salvo Básicas); leyenda extendida con chips de categoría
+    - **Menú contextual** — sección "Categoría especial" con botones toggle ⭐ TOP / 🐐 GOAT (clic asigna, segundo clic quita); badge categoría actual en encabezado del menú
+    - **Vista CRUD** — columna "Categoría" con badge de color y select `— Auto / ⭐ TOP / 🐐 GOAT`; integrado en sistema dirty/save existente
+    - **Catálogo público** — chips de código coloreados por categoría (sin punto); leyenda de categorías visible al tope (se oculta durante búsqueda)
+37. **Sistema de precios por lámina** — dos niveles: precio default por categoría + override individual
+    - `supabase/migrations/003_add_pricing.sql` — tabla `category_prices` (7 filas, una por StickerCategory) + columna `precio INTEGER DEFAULT NULL` en `stickers`; RLS anon read en `category_prices`
+    - `src/types/index.ts` — `CategoryPricesMap`, `DEFAULT_CATEGORY_PRICES` (precios base en pesos), `precio?: number | null` en `Sticker`
+    - `src/services/categoryPriceService.ts` — `fetchCategoryPrices()` + `updateCategoryPrice()` con validación
+    - `src/hooks/useCategoryPrices.ts` — TanStack Query + mutación con invalidación de caché; fallback a defaults
+    - `src/services/stickerService.ts` — `precio` en `StickerRow`, `rowToSticker`, `updateSticker`
+    - `src/hooks/useStickers.ts` — `updateStickerFields` y Realtime handler incluyen campo `precio`
+    - **Menú contextual** — nueva sección "💲 Precio": input precio lámina (💾 guardar / ↩ reset al default), input precio default categoría (💾 guardar, afecta a todas las sin override)
 
 ---
 
 ## Tareas Pendientes / Ideas Futuras 💡
 
-### 🖼️ Feature: Foto de lámina (próxima prioridad)
+### 💰 Feature: Cotizaciones ✅ IMPLEMENTADO (Catálogo público + Admin)
+
+Funciona en ambas vistas. Ideas de mejora futura:
+- Mostrar el precio de cada lámina en el chip del catálogo
+- Historial de cotizaciones guardadas en localStorage
+
+38. **Cotizaciones desde el catálogo público** — feature completa para que el cliente arme su lista de láminas con total
+    - `src/hooks/useQuote.ts` — carrito efímero: `toggle` cicla cantidades (0→1→2→stock→0), `getQuantity`, `clear`; precio efectivo = `sticker.precio ?? categoryPrices[cat]`; `total = Σ(precio × qty)`; `whatsappText` pre-armado con cantidad cuando qty>1 (`MEX5 ×2 — $2.000`)
+    - `src/services/catalogService.ts` — SELECT incluye campo `precio`
+    - `src/components/ui/QuotePanel.tsx` — componente compartido entre catálogo y admin; número WA fijo `+57 316 6590476`
+    - `src/components/catalog/CatalogView.tsx` — chips seleccionables que muestran `2×` cuando hay más de 1 unidad; panel flotante `QuotePanel`; padding-bottom dinámico
+39. **Cotizaciones desde el admin (MatrixView)** — el vendedor también puede armar cotizaciones
+    - `src/components/matrix/StickerCell.tsx` — nuevo prop `onQuoteToggle` (modo cotización) + `quoteQty`; clic izquierdo togglea cotización, clic derecho siempre abre menú; badge amarillo `#FFC72C` para cantidad en cotización
+    - `src/components/matrix/TeamSection.tsx` — nuevos props opcionales `onQuoteToggle` y `getQuoteQty`, los pasa a cada `StickerCell`
+    - `src/components/matrix/MatrixView.tsx` — botón **💰 Cotizar** en el header del panel; al activarlo las celdas entran en modo selección; `QuotePanel` compartido aparece en la parte inferior; al desactivar limpia la selección
+
+### 🖼️ Feature: Foto de lámina
 
 El CRUD (`/admin/crud`) está reservado para esta funcionalidad. Pasos planificados:
 

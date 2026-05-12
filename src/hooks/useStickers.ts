@@ -45,10 +45,10 @@ export interface UseStickersReturn {
   /** Avanza el estado de una lámina al siguiente en el ciclo F↔D */
   cycleStatus: (sticker: Sticker) => Promise<void>;
 
-  /** Actualiza campos de una lámina (cantidad, estado, notas, categoria) */
+  /** Actualiza campos de una lámina (cantidad, estado, notas, categoria, precio) */
   updateStickerFields: (
     code: string,
-    fields: Partial<Pick<Sticker, "status" | "quantity" | "notes" | "categoria">>
+    fields: Partial<Pick<Sticker, "status" | "quantity" | "notes" | "categoria" | "precio">>
   ) => Promise<void>;
 
   /** Conteos globales para el panel de resumen */
@@ -140,6 +140,8 @@ export function useStickers(): UseStickersReturn {
               notes:      row.observacion as string | undefined,
               // Propagar el override manual de categoría desde Realtime
               categoria:  (row.categoria as StickerCategoryOverride | null) ?? null,
+              // Propagar el precio individual (override o null para heredar default)
+              precio:     (row.precio as number | null) ?? null,
               updated_at: row.updated_at as string,
               updated_by: row.updated_by as string | undefined,
             };
@@ -187,7 +189,7 @@ export function useStickers(): UseStickersReturn {
       fields,
     }: {
       code: string;
-      fields: Partial<Pick<Sticker, "status" | "quantity" | "notes" | "categoria">>;
+      fields: Partial<Pick<Sticker, "status" | "quantity" | "notes" | "categoria" | "precio">>;
     }) => updateSticker(code, fields),
 
     onSuccess: (updatedSticker) => {

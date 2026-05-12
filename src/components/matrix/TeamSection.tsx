@@ -19,6 +19,10 @@ interface TeamSectionProps {
   stickers: Sticker[];
   /** Clic derecho: abre el menú contextual en esas coordenadas */
   onRightClick: (sticker: Sticker, x: number, y: number) => void;
+  /** Cuando se define, activa modo cotización en las celdas */
+  onQuoteToggle?: (sticker: Sticker) => void;
+  /** Retorna la cantidad en cotización de un código (0 = no está) */
+  getQuoteQty?: (code: string) => number;
 }
 
 // ---------------------------------------------------------------------------
@@ -39,7 +43,7 @@ interface TeamSectionProps {
  * @param props.onRightClick - Abre el menú contextual
  * @returns Sección con encabezado colapsable y cuadrícula de celdas
  */
-export function TeamSection({ teamCode, teamName, stickers, onRightClick }: TeamSectionProps) {
+export function TeamSection({ teamCode, teamName, stickers, onRightClick, onQuoteToggle, getQuoteQty }: TeamSectionProps) {
   /** Controla si la sección está expandida o colapsada */
   const [expanded, setExpanded] = useState(true);
 
@@ -88,6 +92,8 @@ export function TeamSection({ teamCode, teamName, stickers, onRightClick }: Team
               key={sticker.code}
               sticker={sticker}
               onRightClick={onRightClick}
+              onQuoteToggle={onQuoteToggle}
+              quoteQty={getQuoteQty?.(sticker.code) ?? 0}
             />
           ))}
         </div>

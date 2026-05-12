@@ -10,7 +10,7 @@
 
 import { createPortal } from "react-dom";
 import { useState, useEffect, useRef } from "react";
-import type { Sticker, StickerStatus, StickerCategoryOverride } from "../../types";
+import type { Sticker, StickerStatus, StickerCategoryOverride, StickerCategory, CategoryPricesMap } from "../../types";
 import { STATUS_META, CATEGORY_META } from "../../types";
 import { getStickerCategory } from "../../lib/stickerCategory";
 
@@ -32,14 +32,28 @@ interface StickerContextMenuProps {
   onClose: () => void;
 
   /**
-   * @description Aplica la actualización de estado/cantidad/categoria.
+   * @description Aplica la actualización de estado/cantidad/categoria/precio.
    * @param code    - Código de la lámina
    * @param fields  - Campos a actualizar
    */
   onUpdate: (
     code: string,
-    fields: Partial<Pick<Sticker, "status" | "quantity" | "categoria">>
+    fields: Partial<Pick<Sticker, "status" | "quantity" | "categoria" | "precio">>
   ) => Promise<void>;
+
+  /**
+   * Mapa de precio base por cada categoría.
+   * Se usa como fallback cuando la lámina no tiene precio individual.
+   */
+  categoryPrices: CategoryPricesMap;
+
+  /**
+   * @description Actualiza el precio default de una categoría completa.
+   * Afecta a todas las láminas de esa categoría que no tengan precio propio.
+   * @param category - Categoría a actualizar
+   * @param price    - Nuevo precio base en pesos COP
+   */
+  onUpdateCategoryPrice: (category: StickerCategory, price: number) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -55,7 +69,9 @@ interface StickerContextMenuProps {
  * @param props.x        - Posición X del cursor
  * @param props.y        - Posición Y del cursor
  * @param props.onClose  - Callback para cerrar
- * @param props.onUpdate - Callback para aplicar cambios
+ * @param props.onUpdate - Callback para aplicar cambios de estado/cantidad/categoria/precio
+ * @param props.categoryPrices        - Mapa de precio base por categoría
+ * @param props.onUpdateCategoryPrice - Callback para cambiar el precio default de una categoría
  * @returns Portal con el menú contextual
  */
 export function StickerContextMenu({
@@ -64,6 +80,8 @@ export function StickerContextMenu({
   y,
   onClose,
   onUpdate,
+  categoryPrices,
+  onUpdateCategoryPrice,
 }: StickerContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -80,6 +98,79 @@ export function StickerContextMenu({
 
   /** Categoría actual derivada de la lámina (para mostrar estado activo en el menú) */
   const currentCategory = getStickerCategory(sticker);
+
+  // ── Estado de precio ────────────────────────────────────────────────────
+  // true si la lámina tiene un precio individual distinto al default de su categoría
+  const hasOverride = sticker.precio !== null && sticker.precio !== undefined;
+
+  // Precio efectivo: propio de la lámina si existe, o el default de la categoría
+  const effectivePrice = hasOverride
+    ? sticker.precio!
+    : (categoryPrices[currentCategory] ?? 0);
+
+  /**
+   * Input de precio individual.
+   * Vacío ("") significa "sin override — usar default de la categoría".
+   * Se pre-rellena con el override actual si existe.
+   */
+  const [stickerPriceInput, setStickerPriceInput] = useState(
+    hasOverride ? String(sticker.precio) : ""
+  );
+
+  /** Input de precio default de la categoría actual */
+  const [catPriceInput, setCatPriceInput] = useState(
+    String(categoryPrices[currentCategory] ?? 0)
+  );
+
+  /** true mientras hay una operación de precio en vuelo */
+  const [isPriceApplying, setIsPriceApplying] = useState(false);
+
+  /**
+   * @description Guarda el precio individual de esta lámina (override).
+   * No cierra el menú para que el usuario pueda seguir ajustando.
+   */
+  async function handleSaveStickerPrice() {
+    const price = parseInt(stickerPriceInput, 10);
+    if (isNaN(price) || price < 0 || isPriceApplying) return;
+    setIsPriceApplying(true);
+    try {
+      await onUpdate(sticker.code, { precio: price });
+    } finally {
+      setIsPriceApplying(false);
+    }
+  }
+
+  /**
+   * @description Borra el override individual y vuelve al precio default de la categoría.
+   * Establece `precio = null` en la DB.
+   */
+  async function handleResetStickerPrice() {
+    if (isPriceApplying) return;
+    setIsPriceApplying(true);
+    try {
+      await onUpdate(sticker.code, { precio: null });
+      // Limpiar el input para reflejar que ahora usa el default
+      setStickerPriceInput("");
+    } finally {
+      setIsPriceApplying(false);
+    }
+  }
+
+  /**
+   * @description Guarda el nuevo precio default de toda la categoría.
+   * Afecta a TODAS las láminas de esa categoría que no tengan precio propio.
+   * No cierra el menú.
+   */
+  async function handleSaveCatPrice() {
+    const price = parseInt(catPriceInput, 10);
+    if (isNaN(price) || price < 0 || isPriceApplying) return;
+    setIsPriceApplying(true);
+    try {
+      await onUpdateCategoryPrice(currentCategory, price);
+    } finally {
+      setIsPriceApplying(false);
+    }
+  }
 
   /**
    * Posición ajustada para no salirse del viewport.
@@ -331,6 +422,107 @@ export function StickerContextMenu({
           </button>
 
         </div>
+      </div>
+
+      {/* ── Sección de precio ─────────────────────────────────────── */}
+      <div className="px-2 pb-2 border-t border-gray-100 pt-2">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-1 mb-2">
+          💲 Precio
+        </p>
+
+        {/* Precio de esta lámina (override individual) */}
+        <div className="mb-2">
+          <p className="text-[10px] text-gray-500 px-1 mb-1 flex items-center gap-1">
+            Esta lámina
+            {hasOverride
+              ? <span className="text-blue-500 font-bold">(personalizado)</span>
+              : <span className="text-gray-400">(default {CATEGORY_META[currentCategory].label})</span>
+            }
+          </p>
+          <div
+            className="flex items-center gap-1"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <span className="text-xs text-gray-500 pl-1 flex-shrink-0">$</span>
+            <input
+              type="number"
+              min={0}
+              value={stickerPriceInput}
+              onChange={(e) => setStickerPriceInput(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder={String(effectivePrice)}
+              className="flex-1 text-sm font-bold text-gray-800 border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-blue-400 min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              aria-label="Precio individual de esta lámina"
+            />
+            {/* Guardar precio individual */}
+            <button
+              onClick={(e) => { e.stopPropagation(); handleSaveStickerPrice(); }}
+              disabled={isPriceApplying || stickerPriceInput === "" || parseInt(stickerPriceInput, 10) === sticker.precio}
+              className="px-2 py-1 text-xs font-bold rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-40 flex-shrink-0"
+              title="Guardar precio para esta lámina"
+            >
+              💾
+            </button>
+            {/* Botón reset: solo visible cuando hay override — vuelve al default */}
+            {hasOverride && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleResetStickerPrice(); }}
+                disabled={isPriceApplying}
+                className="px-2 py-1 text-xs font-bold rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 flex-shrink-0"
+                title="Volver al precio default de la categoría"
+              >
+                ↩
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Precio default de la categoría — editable, afecta a todas sus láminas */}
+        <div>
+          <p className="text-[10px] text-gray-500 px-1 mb-1">
+            Default <span className={`font-bold ${CATEGORY_META[currentCategory].text}`}>{CATEGORY_META[currentCategory].label}</span>
+          </p>
+          <div
+            className="flex items-center gap-1"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <span className="text-xs text-gray-500 pl-1 flex-shrink-0">$</span>
+            <input
+              type="number"
+              min={0}
+              value={catPriceInput}
+              onChange={(e) => setCatPriceInput(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 text-sm font-bold text-gray-800 border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-yellow-400 min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              aria-label={`Precio default para todas las láminas ${CATEGORY_META[currentCategory].label}`}
+            />
+            {/* Guardar precio de categoría */}
+            <button
+              onClick={(e) => { e.stopPropagation(); handleSaveCatPrice(); }}
+              disabled={
+                isPriceApplying ||
+                catPriceInput === "" ||
+                parseInt(catPriceInput, 10) === (categoryPrices[currentCategory] ?? 0)
+              }
+              className="px-2 py-1 text-xs font-bold rounded-lg bg-yellow-400 text-yellow-900 hover:bg-yellow-500 disabled:opacity-40 flex-shrink-0"
+              title={`Cambiar el precio base para TODAS las ${CATEGORY_META[currentCategory].label}`}
+            >
+              💾
+            </button>
+          </div>
+          {/* Aviso de alcance: el usuario sabe que afecta a toda la categoría */}
+          <p className="text-[9px] text-gray-400 px-1 mt-0.5">
+            Aplica a todas las {CATEGORY_META[currentCategory].label.toLowerCase()} sin precio propio
+          </p>
+        </div>
+
+        {/* Spinner de precio en vuelo */}
+        {isPriceApplying && (
+          <div className="flex items-center gap-1.5 mt-1.5 px-1">
+            <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            <span className="text-[10px] text-blue-500">Guardando precio…</span>
+          </div>
+        )}
       </div>
 
       {/* Spinner de carga mientras aplica */}

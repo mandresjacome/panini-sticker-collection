@@ -18,12 +18,26 @@ interface StickerCellProps {
   sticker: Sticker;
 
   /**
-   * @description Clic derecho: abre el menú contextual con todas las opciones.
+   * @description Clic: abre el menú contextual con todas las opciones.
    * @param sticker - Lámina seleccionada
    * @param x       - Posición X del cursor (clientX)
    * @param y       - Posición Y del cursor (clientY)
    */
   onRightClick: (sticker: Sticker, x: number, y: number) => void;
+
+  /**
+   * @description Cuando se provee, activa el "modo cotización".
+   * El clic izquierdo llama a esta función en vez de abrir el menú contextual.
+   * El clic derecho sigue abriendo el menú contextual normalmente.
+   * @param sticker - Lámina a agregar/quitar de la cotización
+   */
+  onQuoteToggle?: (sticker: Sticker) => void;
+
+  /**
+   * Cantidad actualmente seleccionada en la cotización (0 = no está).
+   * Se usa para mostrar el badge de cantidad sobre la celda.
+   */
+  quoteQty?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -41,7 +55,7 @@ interface StickerCellProps {
  * @param props.onRightClick - Abre el menú contextual
  * @returns Elemento <button> con color, código y punto de categoría
  */
-export function StickerCell({ sticker, onRightClick }: StickerCellProps) {
+export function StickerCell({ sticker, onRightClick, onQuoteToggle, quoteQty = 0 }: StickerCellProps) {
   // Fallback defensivo: si el status no está en STATUS_META (dato legacy de DB),
   // tratar como "F" para no crashear el render
   const meta = STATUS_META[sticker.status] ?? STATUS_META["F"];
@@ -50,9 +64,21 @@ export function StickerCell({ sticker, onRightClick }: StickerCellProps) {
   const category     = getStickerCategory(sticker);
   const categoryMeta = CATEGORY_META[category];
 
-  // No mostramos el punto en láminas básicas para no saturar la vista —
-  // solo en categorías que aportan información diferencial
-  const showCategoryDot = category !== "BASICA";
+  /**
+   * Color de la celda completa:
+   * - Disponible (D): color de la categoría (teal, morado, rojo, etc.)
+   *   El color de celda reemplaza al verde genérico — la categoría ES la señal visual.
+   * - Falta (F): gris uniforme, sin importar la categoría.
+   */
+  const cellColor = sticker.status === "D" ? categoryMeta.cellColor : meta.color;
+
+  /**
+   * Punto de categoría en esquina sup-izq:
+   * Solo se muestra cuando la lámina está en Falta (gris), para que el vendedor
+   * igualmente sepa qué categoría es. Cuando está Disponible, la celda completa
+   * ya muestra el color de la categoría y el punto sería redundante.
+   */
+  const showCategoryDot = sticker.status === "F" && category !== "BASICA";
 
   /**
    * @description Abre el menú contextual con la posición del cursor/toque.
@@ -60,7 +86,22 @@ export function StickerCell({ sticker, onRightClick }: StickerCellProps) {
    * (desktop), para que en mobile el tap abra el menú normalmente.
    * @param e - Evento de mouse/touch
    */
-  function handleOpen(e: React.MouseEvent) {
+  /**
+   * @description Clic izquierdo:
+   * - Modo cotización (onQuoteToggle definido): agrega/quita de la cotización.
+   * - Modo normal: abre el menú contextual.
+   */
+  function handleClick(e: React.MouseEvent) {
+    e.preventDefault();
+    if (onQuoteToggle) {
+      onQuoteToggle(sticker);
+    } else {
+      onRightClick(sticker, e.clientX, e.clientY);
+    }
+  }
+
+  /** Clic derecho siempre abre el menú contextual, incluso en modo cotización */
+  function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault();
     onRightClick(sticker, e.clientX, e.clientY);
   }
@@ -71,9 +112,19 @@ export function StickerCell({ sticker, onRightClick }: StickerCellProps) {
 
   return (
     <button
-      onClick={handleOpen}
-      onContextMenu={handleOpen}
-      title={`${sticker.code} — ${meta.label} · ${categoryMeta.label}${sticker.quantity > 1 ? ` (x${sticker.quantity})` : ""}\nToca para cambiar estado`}
+      onClick={handleClick}
+      onContextMenu={handleContextMenu}
+      title={
+        onQuoteToggle
+          ? `${sticker.code} — ${categoryMeta.label}${
+              quoteQty > 0 ? ` · ${quoteQty} en cotización` : ""
+            }\nToca para ${
+              quoteQty >= sticker.quantity ? "sacar de cotización" : quoteQty > 0 ? "agregar 1 más" : "agregar a cotización"
+            }`
+          : `${sticker.code} — ${meta.label} · ${categoryMeta.label}${
+              sticker.quantity > 1 ? ` (x${sticker.quantity})` : ""
+            }\nToca para cambiar estado`
+      }
       aria-label={`Lámina ${sticker.code}, estado ${meta.label}, categoría ${categoryMeta.label}. Toca para opciones.`}
       className={[
         "relative flex items-center justify-center",
@@ -82,7 +133,7 @@ export function StickerCell({ sticker, onRightClick }: StickerCellProps) {
         "hover:scale-110 hover:z-10 hover:shadow-md",
         "active:scale-95",
         "focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400",
-        meta.color,
+        cellColor,
       ].join(" ")}
     >
       {shortCode}
@@ -95,8 +146,14 @@ export function StickerCell({ sticker, onRightClick }: StickerCellProps) {
         />
       )}
 
-      {/* Badge de cantidad — pegado al borde interior superior-derecho */}
-      {sticker.quantity > 1 && (
+      {/* Badge de cantidad en cotización — esquina superior-derecha, amarillo */}
+      {quoteQty > 0 && (
+        <span className="absolute top-0.5 right-0.5 bg-[#FFC72C] text-black text-[8px] font-black rounded-full w-3.5 h-3.5 flex items-center justify-center leading-none">
+          {quoteQty > 9 ? "9+" : quoteQty}
+        </span>
+      )}
+      {/* Badge de stock — esquina superior-derecha, naranja (solo cuando no hay badge de cotización) */}
+      {quoteQty === 0 && sticker.quantity > 1 && (
         <span className="absolute top-0.5 right-0.5 bg-orange-500 text-white text-[8px] font-black rounded-full w-3.5 h-3.5 flex items-center justify-center leading-none">
           {sticker.quantity > 9 ? "9+" : sticker.quantity}
         </span>

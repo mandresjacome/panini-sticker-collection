@@ -8,62 +8,50 @@
 import { useMemo, useState, useCallback } from "react";
 import { useStickers } from "../../hooks/useStickers";
 import { useTeams } from "../../hooks/useTeams";
+import { useCategoryPrices } from "../../hooks/useCategoryPrices";
+import { useQuote } from "../../hooks/useQuote";
 import { TeamSection } from "./TeamSection";
 import { StickerContextMenu } from "./StickerContextMenu";
+import { QuotePanel } from "../ui/QuotePanel";
 import { ALBUM_GROUP_ORDER } from "../../lib/albumOrder";
-import { STATUS_META, CATEGORY_META } from "../../types";
-import type { Sticker, StickerStatus, StickerCategory } from "../../types";
+import { CATEGORY_META } from "../../types";
+import type { Sticker, StickerCategory } from "../../types";
 
 // ---------------------------------------------------------------------------
 // Componente de leyenda
 // ---------------------------------------------------------------------------
 
 /**
- * @description Leyenda de estados y categorías de láminas.
- * @returns Filas de chips con cada estado/categoría y su color
+ * @description Leyenda de categorías de láminas.
+ * Muestra el color real de celda por categoría + gris para Falta.
+ * La fila de "Estados" se eliminó: Disponible ya no tiene un color fijo,
+ * cada categoría usa su propio color cuando está disponible.
+ * @returns Fila de chips con cada categoría y su color
  */
 function StatusLegend() {
-  const entries = Object.entries(STATUS_META) as [StickerStatus, (typeof STATUS_META)[StickerStatus]][];
-
   // Todas las categorías en el orden visual correcto (manuales primero)
   const categoryOrder: StickerCategory[] = [
     "GOAT", "TOP", "METALIZADA", "ESCUDO", "FOTO_EQUIPO", "PATROCINADOR", "BASICA",
   ];
 
   return (
-    <div className="space-y-2">
-      {/* Leyenda de estados */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <span className="text-xs text-gray-500 font-medium w-16 shrink-0">Estados:</span>
-        {entries.map(([status, meta]) => (
+    <div className="flex flex-wrap gap-2 items-center">
+      {categoryOrder.map((cat) => {
+        const meta = CATEGORY_META[cat];
+        return (
           <span
-            key={status}
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${meta.color}`}
+            key={cat}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${meta.cellColor}`}
           >
-            <span className="font-mono">{status}</span>
-            <span className="opacity-75">·</span>
             {meta.label}
+            {meta.manual && <span className="opacity-60 text-[9px]">manual</span>}
           </span>
-        ))}
-      </div>
-
-      {/* Leyenda de categorías — punto de color */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <span className="text-xs text-gray-500 font-medium w-16 shrink-0">Puntos:</span>
-        {categoryOrder.filter((c) => c !== "BASICA").map((cat) => {
-          const meta = CATEGORY_META[cat];
-          return (
-            <span
-              key={cat}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${meta.bg} ${meta.text}`}
-            >
-              <span className={`w-2 h-2 rounded-full ${meta.dot}`} />
-              {meta.label}
-              {meta.manual && <span className="opacity-60 text-[9px]">manual</span>}
-            </span>
-          );
-        })}
-      </div>
+        );
+      })}
+      {/* Gris = Falta (único estado con color fijo) */}
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-gray-300 text-gray-700">
+        Falta
+      </span>
     </div>
   );
 }
@@ -82,6 +70,27 @@ function StatusLegend() {
 export function MatrixView() {
   const { stickersArray, updateStickerFields, isLoading, error, counts } = useStickers();
   const { teamsMap, teamsLoading } = useTeams();
+  const { categoryPrices, updateCategoryPrice } = useCategoryPrices();
+
+  /** Si true, los clics en las celdas agregan/quitan de la cotización */
+  const [quoteMode, setQuoteMode] = useState(false);
+  /** Controla si el panel de cotización está expandido */
+  const [quoteExpanded, setQuoteExpanded] = useState(false);
+
+  /**
+   * Lista plana de todas las láminas del inventario.
+   * useQuote necesita resolver stickers por código para calcular precios.
+   */
+  const stickersFlat = stickersArray;
+
+  const {
+    getQuantity,
+    toggle: quoteToggle,
+    clear: quoteClear,
+    total: quoteTotal,
+    whatsappText,
+    selectedCodes,
+  } = useQuote(categoryPrices, stickersFlat);
 
   /**
    * Estado del menú contextual.
@@ -99,6 +108,25 @@ export function MatrixView() {
 
   /** Cierra el menú contextual */
   const handleCloseMenu = useCallback(() => setContextMenu(null), []);
+
+  /**
+   * Alterna el modo cotización. Al desactivarlo limpia la selección.
+   */
+  const handleToggleQuoteMode = useCallback(() => {
+    setQuoteMode((prev) => {
+      if (prev) {
+        quoteClear();
+        setQuoteExpanded(false);
+      }
+      return !prev;
+    });
+  }, [quoteClear]);
+
+  /** Total de unidades en la cotización (suma de cantidades) */
+  const quoteTotalUnits = useMemo(
+    () => Array.from(selectedCodes).reduce((acc, code) => acc + getQuantity(code), 0),
+    [selectedCodes, getQuantity]
+  );
 
   /**
    * Construye un mapa de stickers indexado por equipo.
@@ -147,16 +175,34 @@ export function MatrixView() {
 
   // ── Vista principal ───────────────────────────────────────────────────────
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4"
+      style={{ paddingBottom: selectedCodes.size > 0 ? "9rem" : undefined }}
+    >
 
       {/* ── Título de la vista ────────────────────────────────────────── */}
-      <div className="bg-[#0a0a14] rounded-xl px-4 py-3">
-        <h2 className="text-lg font-black leading-tight" style={{ color: '#ffffff' }}>
-          📋 Vista Matriz
-        </h2>
-        <p className="text-xs font-semibold mt-0.5" style={{ color: '#FFC72C' }}>
-          FIFA World Cup 2026 · {stickersArray.length} láminas
-        </p>
+      <div className="bg-[#0a0a14] rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-black leading-tight" style={{ color: '#ffffff' }}>
+            📋 Vista Matriz
+          </h2>
+          <p className="text-xs font-semibold mt-0.5" style={{ color: '#FFC72C' }}>
+            FIFA World Cup 2026 · {stickersArray.length} láminas
+          </p>
+        </div>
+
+        {/* Botón toggle modo cotización */}
+        <button
+          onClick={handleToggleQuoteMode}
+          className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all ${
+            quoteMode
+              ? "bg-[#FFC72C] text-black shadow-lg scale-105"
+              : "bg-white/10 text-white hover:bg-white/20"
+          }`}
+          title={quoteMode ? "Salir del modo cotización" : "Activar modo cotización"}
+        >
+          💰 {quoteMode ? (selectedCodes.size > 0 ? `Cotizando (${quoteTotalUnits})` : "Cotizando") : "Cotizar"}
+        </button>
       </div>
 
       {/* ── Resumen de inventario ─────────────────────────────────────── */}
@@ -198,11 +244,26 @@ export function MatrixView() {
                 teamName={teamsMap[teamCode] ?? teamCode}
                 stickers={stickersByTeam.get(teamCode)!}
                 onRightClick={handleRightClick}
+                // Modo cotización: pasar handlers solo cuando está activo
+                onQuoteToggle={quoteMode ? quoteToggle : undefined}
+                getQuoteQty={quoteMode ? getQuantity : undefined}
               />
             ))}
           </div>
         );
       })}
+
+      {/* Cotización activa */}
+      {quoteMode && selectedCodes.size > 0 && (
+        <QuotePanel
+          count={quoteTotalUnits}
+          total={quoteTotal}
+          whatsappText={whatsappText}
+          onClear={() => { quoteClear(); setQuoteExpanded(false); }}
+          expanded={quoteExpanded}
+          onToggleExpand={() => setQuoteExpanded((v) => !v)}
+        />
+      )}
 
       {/* Menú contextual — se renderiza en document.body via Portal */}
       {contextMenu && (
@@ -212,6 +273,8 @@ export function MatrixView() {
           y={contextMenu.y}
           onClose={handleCloseMenu}
           onUpdate={updateStickerFields}
+          categoryPrices={categoryPrices}
+          onUpdateCategoryPrice={updateCategoryPrice}
         />
       )}
     </div>

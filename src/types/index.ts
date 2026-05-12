@@ -86,6 +86,13 @@ export interface Sticker {
    */
   categoria?: StickerCategoryOverride | null;
 
+  /**
+   * Precio de venta individual (override por lámina).
+   * null / undefined = usar el precio default de su categoría (tabla category_prices).
+   * Entero positivo = precio específico de esta lámina (ej. una metalizada rara vale más).
+   */
+  precio?: number | null;
+
   /** Fecha y hora de la última modificación (gestionado por Supabase) */
   updated_at?: string;
 
@@ -182,64 +189,101 @@ export const STATUS_META: Record<
 // ---------------------------------------------------------------------------
 
 /**
- * @description Metadatos de cada categoría: etiqueta, color de fondo, color de texto
+ * @description Metadatos de cada categoría: etiqueta, color de fondo, color de texto,
+ * color de punto, color de celda completa (cuando la lámina está Disponible)
  * y si requiere asignación manual.
  *
- * Usado en StickerCell (punto de color), CRUDView (badge) y MatrixView (leyenda).
+ * `cellColor` — clases Tailwind para bg + text usadas en StickerCell cuando status = D.
+ *   La celda entera toma el color de la categoría, reemplazando el verde genérico.
+ *   Cuando status = F la celda sigue siendo gris (STATUS_META.F.color).
+ *
+ * Usado en StickerCell (celda + punto), CRUDView (badge) y MatrixView (leyenda).
  */
 export const CATEGORY_META: Record<
   StickerCategory,
-  { label: string; bg: string; text: string; dot: string; manual: boolean }
+  { label: string; bg: string; text: string; dot: string; cellColor: string; manual: boolean }
 > = {
   // ── Manuales ──────────────────────────────────────────────────────────────
   GOAT: {
-    label:  "GOAT",
-    bg:     "bg-yellow-100",
-    text:   "text-yellow-800",
-    dot:    "bg-yellow-400",      // Dorado
-    manual: true,
+    label:     "GOAT",
+    bg:        "bg-yellow-100",
+    text:      "text-yellow-800",
+    dot:       "bg-yellow-400",
+    cellColor: "bg-yellow-400 text-yellow-900",   // Dorado saturado
+    manual:    true,
   },
   TOP: {
-    label:  "TOP",
-    bg:     "bg-purple-100",
-    text:   "text-purple-800",
-    dot:    "bg-purple-500",      // Morado
-    manual: true,
+    label:     "TOP",
+    bg:        "bg-purple-100",
+    text:      "text-purple-800",
+    dot:       "bg-purple-500",
+    cellColor: "bg-purple-500 text-white",         // Morado
+    manual:    true,
   },
   // ── Auto-derivadas ─────────────────────────────────────────────────────────
   METALIZADA: {
-    label:  "Metalizada",
-    bg:     "bg-teal-100",
-    text:   "text-teal-800",
-    dot:    "bg-teal-400",        // Agua marina / teal
-    manual: false,
+    label:     "Metalizada",
+    bg:        "bg-teal-100",
+    text:      "text-teal-800",
+    dot:       "bg-teal-400",
+    cellColor: "bg-teal-400 text-white",           // Teal
+    manual:    false,
   },
   ESCUDO: {
-    label:  "Escudo",
-    bg:     "bg-red-100",
-    text:   "text-red-800",
-    dot:    "bg-red-500",         // Rojo
-    manual: false,
+    label:     "Escudo",
+    bg:        "bg-red-100",
+    text:      "text-red-800",
+    dot:       "bg-red-500",
+    cellColor: "bg-red-500 text-white",            // Rojo
+    manual:    false,
   },
   FOTO_EQUIPO: {
-    label:  "Foto equipo",
-    bg:     "bg-green-100",
-    text:   "text-green-800",
-    dot:    "bg-green-500",       // Verde
-    manual: false,
+    label:     "Foto equipo",
+    bg:        "bg-green-100",
+    text:      "text-green-800",
+    dot:       "bg-green-500",
+    cellColor: "bg-green-500 text-white",          // Verde
+    manual:    false,
   },
   PATROCINADOR: {
-    label:  "Patrocinador",
-    bg:     "bg-orange-100",
-    text:   "text-orange-800",
-    dot:    "bg-orange-400",      // Naranja/rojo Coca-Cola
-    manual: false,
+    label:     "Patrocinador",
+    bg:        "bg-orange-100",
+    text:      "text-orange-800",
+    dot:       "bg-orange-400",
+    cellColor: "bg-orange-400 text-white",         // Naranja
+    manual:    false,
   },
   BASICA: {
-    label:  "Básica",
-    bg:     "bg-blue-50",
-    text:   "text-blue-700",
-    dot:    "bg-blue-400",        // Azul
-    manual: false,
+    label:     "Básica",
+    bg:        "bg-blue-50",
+    text:      "text-blue-700",
+    dot:       "bg-blue-400",
+    cellColor: "bg-blue-400 text-white",           // Azul
+    manual:    false,
   },
+};
+
+// ---------------------------------------------------------------------------
+// Sistema de precios por categoría
+// ---------------------------------------------------------------------------
+
+/**
+ * @description Mapa de precio base por cada categoría de lámina.
+ * Usado como fallback cuando una lámina no tiene precio individual (precio = null).
+ */
+export type CategoryPricesMap = Record<StickerCategory, number>;
+
+/**
+ * @description Precios base acordados inicialmente (en pesos COP).
+ * Se usan como fallback mientras la tabla `category_prices` carga desde Supabase.
+ * PATROCINADOR queda en 0 porque aún está por definir.
+ */
+export const DEFAULT_CATEGORY_PRICES: CategoryPricesMap = {
+  BASICA:       1000,
+  PATROCINADOR: 0,
+  FOTO_EQUIPO:  2000,
+  ESCUDO:       3000,
+  METALIZADA:   5000,
+  TOP:          5000,
+  GOAT:         10000,
 };
