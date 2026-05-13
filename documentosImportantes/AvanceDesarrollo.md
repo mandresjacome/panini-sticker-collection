@@ -1,6 +1,6 @@
 # Avance de Desarrollo — App Láminas FIFA World Cup 2026
 
-**Fecha de última actualización:** 13 de mayo de 2026 — Sesión 13
+**Fecha de última actualización:** 13 de mayo de 2026 — Sesión 14
 
 ---
 
@@ -348,6 +348,21 @@ Funciona en ambas vistas. Ideas de mejora futura:
     - `App.tsx` — ruta `/laminas/:slug` (barra antes del param, necesario para React Router v6)
     - `CatalogView.tsx` — `useParams<{slug}>()` + query seller; `inventario = seller?.inventario ?? 'CN'`; header `🏆 Láminas Panini — Láminas Réplica` cuando hay seller
     - URLs finales: `/` (CN — Cristian/Nicolás), `/laminas/replica` (AM — Anny/Mario)
+
+---
+
+### 🐛 Sesión 14 — Corrección de bugs post-deploy multi-inventario
+
+54. **Fix: store Zustand limpia datos al cambiar inventario** — `src/store/stickerStore.ts` + `src/hooks/useStickers.ts`:
+    - Problema: al iniciar sesión con una cuenta AM (Anny/Mario) después de haber usado una cuenta CN (Cristian/Nicolás) en el mismo navegador, la Vista Matriz de Anny mostraba las láminas de Nicolás/Cristian hasta que la nueva query terminaba
+    - Causa: el store Zustand es global en memoria y no se vaciaba al cambiar de inventario
+    - Solución: nueva acción `clearStickers()` en el interface y la implementación del store (`set({ stickers: {}, isLoading: true, error: null })`); llamada en `useStickers` mediante `useEffect` cuando `inventario` cambia
+
+55. **Fix: columnas incorrectas en `useTeams`** — `src/hooks/useTeams.ts`:
+    - Problema: el hook consultaba `select("codigo, nombre")` pero la tabla `teams` tiene columnas `code` y `name` (según migración 001 y seed.sql) → Supabase devolvía `400 Bad Request` siempre
+    - Causa: inconsistencia entre el nombre de columnas del hook (español) y el esquema real de la DB (inglés)
+    - Solución: corregidos a `select("code, name")` y el `TeamRow` interface, y el mapeo `teamsMap[row.code] = row.name`
+    - Fix adicional: `enabled: !loading && !!user` para evitar que la query se dispare antes de que la instancia local de `useAuth()` haya resuelto la sesión
 
 50. **Dashboard — métricas financieras y desglose por categoría** — `DashboardView.tsx`:
     - `valorTotal` = suma de `precio efectivo × cantidad` de todas las láminas con estado `D`
