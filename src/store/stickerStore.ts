@@ -112,6 +112,9 @@ export const useStickerStore = create<StickerStore>((set, get) => ({
 
   setError: (error) => set({ error, isLoading: false }),
 
+  // Vaciar el mapa para que no se muestren stickers del inventario anterior
+  clearStickers: () => set({ stickers: {}, isLoading: true, error: null }),
+
   // --- Selectores derivados ---
 
   getStickersArray: () =>

@@ -74,6 +74,7 @@ export interface UseStickersReturn {
 export function useStickers(): UseStickersReturn {
   const queryClient = useQueryClient();
   const { setStickers, upsertSticker, setLoading, setError,
+          clearStickers,
           isLoading, error,
           getStickersArray, getStickersByTeam, getStickersByStatus } = useStickerStore();
 
@@ -82,6 +83,15 @@ export function useStickers(): UseStickersReturn {
    * null = sesion todavía cargando (AdminLayout impide montar antes de que esté listo).
    */
   const inventario = useInventario();
+
+  // Limpiar el store inmediatamente cuando cambia el inventario (cambio de usuario).
+  // Evita que la matrix muestre datos del inventario anterior mientras carga el nuevo.
+  useEffect(() => {
+    if (inventario !== null) {
+      clearStickers();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inventario]);
 
   // Clave de caché específica para este inventario
   const STICKERS_QUERY_KEY = stickerQueryKey(inventario);
