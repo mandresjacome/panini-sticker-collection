@@ -31,13 +31,14 @@ interface TeamRow {
  * @returns Mapa Record<teamCode, teamName> y estado de carga
  */
 export function useTeams(): { teamsMap: Record<string, string>; teamsLoading: boolean } {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: ["teams"],
-    // Esperar a que exista sesión activa antes de lanzar la query.
-    // Sin esto, la petición llega sin JWT → Supabase RLS devuelve 400.
-    enabled: !!user,
+    // Esperar a que el hook de auth haya resuelto la sesión Y tenga usuario.
+    // Sin esto, si useAuth() aún está en loading:true en esta instancia,
+    // la petición llega sin JWT → Supabase RLS devuelve 400.
+    enabled: !loading && !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("teams")
