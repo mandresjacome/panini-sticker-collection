@@ -14,10 +14,10 @@ import { useAuth } from "./useAuth";
 
 interface TeamRow {
   /** Sigla del equipo (PK). Ej: "MEX", "ARG", "FWC" */
-  codigo: string;
+  code: string;
 
   /** Nombre completo. Ej: "México", "Argentina" */
-  nombre: string;
+  name: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -42,8 +42,8 @@ export function useTeams(): { teamsMap: Record<string, string>; teamsLoading: bo
     queryFn: async () => {
       const { data, error } = await supabase
         .from("teams")
-        .select("codigo, nombre")
-        .order("codigo");
+        .select("code, name")
+        .order("code");
 
       if (error) throw new Error(`Error al cargar equipos: ${error.message}`);
       return data as TeamRow[];
@@ -56,7 +56,7 @@ export function useTeams(): { teamsMap: Record<string, string>; teamsLoading: bo
   const teamsMap: Record<string, string> = {};
   if (data) {
     for (const row of data) {
-      teamsMap[row.codigo] = row.nombre;
+      teamsMap[row.code] = row.name;
     }
   }
 
