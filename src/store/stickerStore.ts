@@ -79,6 +79,13 @@ interface StickerStore {
    * @returns Array de stickers con ese estado
    */
   getStickersByStatus: (status: StickerStatus) => Sticker[];
+
+  /**
+   * @description Vacía el mapa de stickers y activa isLoading.
+   * Llamar cuando el inventario activo cambia (cambio de usuario)
+   * para evitar mostrar datos del inventario anterior.
+   */
+  clearStickers: () => void;
 }
 
 // ---------------------------------------------------------------------------
