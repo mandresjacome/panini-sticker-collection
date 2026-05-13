@@ -6,6 +6,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "./useAuth";
 
 // ---------------------------------------------------------------------------
 // Tipo de fila de la tabla teams
@@ -30,8 +31,13 @@ interface TeamRow {
  * @returns Mapa Record<teamCode, teamName> y estado de carga
  */
 export function useTeams(): { teamsMap: Record<string, string>; teamsLoading: boolean } {
+  const { user } = useAuth();
+
   const { data, isLoading } = useQuery({
     queryKey: ["teams"],
+    // Esperar a que exista sesión activa antes de lanzar la query.
+    // Sin esto, la petición llega sin JWT → Supabase RLS devuelve 400.
+    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("teams")
