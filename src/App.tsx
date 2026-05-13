@@ -2,12 +2,13 @@
  * @fileoverview Punto de entrada principal de la aplicación.
  *
  * Rutas:
- *   /              → CatalogView    (público, sin login)
- *   /admin         → AdminLayout → MatrixView
- *   /admin/crud    → AdminLayout → CRUDView      (placeholder por ahora)
- *   /admin/dashboard → AdminLayout → DashboardView (placeholder por ahora)
- *   /admin/login   → LoginForm
- *   *              → Redirige a /
+ *   /                  → CatalogView    (público, sin login — catálogo genérico)
+ *   /laminas-:slug     → CatalogView    (público, catálogo personalizado por vendedor)
+ *   /admin             → AdminLayout → MatrixView
+ *   /admin/crud        → AdminLayout → CRUDView
+ *   /admin/dashboard   → AdminLayout → DashboardView
+ *   /admin/login       → LoginForm
+ *   *                  → Redirige a /
  */
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -42,8 +43,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          {/* ── Ruta pública: catálogo de láminas disponibles ──────────── */}
+          {/* ── Ruta pública: catálogo genérico (sin vendedor) ────────── */}
           <Route path="/" element={<CatalogView />} />
+
+          {/* ── Ruta pública: catálogo personalizado por vendedor ──────── */}
+          {/* Ej: /laminas/replica  →  muestra "Láminas Réplica" en el header */}
+          <Route path="/laminas/:slug" element={<CatalogView />} />
 
           {/* ── Rutas del panel admin (requieren login) ────────────────── */}
           <Route path="/admin" element={<AdminLayout />}>

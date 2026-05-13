@@ -31,18 +31,18 @@ interface PublicStickerRow {
 // ---------------------------------------------------------------------------
 
 /**
- * @description Obtiene todas las láminas disponibles para la venta (estado = "D").
- * El cliente anon solo puede leer estas filas gracias a la política RLS.
- * Retorna un mapa agrupado por equipo para renderizar el catálogo.
- *
+ * @description Obtiene todas las láminas disponibles para la venta (estado = "D")
+ * del inventario indicado.
+ * @param inventario - Grupo de inventario a consultar ('CN' o 'AM')
  * @returns Mapa Record<teamCode, Sticker[]> con solo las láminas disponibles
- * @throws Error si la query falla (ej. RLS no configurado)
+ * @throws Error si la query falla
  */
-export async function fetchAvailableStickers(): Promise<Record<string, Sticker[]>> {
+export async function fetchAvailableStickers(inventario: string): Promise<Record<string, Sticker[]>> {
   const { data, error } = await supabase
     .from("stickers")
     .select("codigo, equipo, tipo, estado, cantidad, categoria, precio, nombre")
-    .eq("estado", "D")       // Filtro explícito + redundante con RLS (defensa en profundidad)
+    .eq("estado", "D")         // Filtro explícito + redundante con RLS (defensa en profundidad)
+    .eq("inventario", inventario) // Solo las láminas del inventario del vendedor
     .order("equipo")
     .order("codigo");
 
@@ -105,4 +105,50 @@ export async function fetchPublicTeams(): Promise<Record<string, string>> {
     map[row.codigo] = row.nombre;
   }
   return map;
+}
+
+// ---------------------------------------------------------------------------
+// Vendedores
+// ---------------------------------------------------------------------------
+
+/**
+ * @description Datos públicos de un vendedor identificado por su slug de URL.
+ */
+export interface SellerPublic {
+  /** Slug único. Ej: "anny" */
+  slug: string;
+  /** Nombre a mostrar en el catálogo. Ej: "Anny" */
+  displayName: string;
+  /** Inventario que gestiona este vendedor: 'CN' | 'AM' */
+  inventario: string;
+  /** Número de WhatsApp (opcional, reservado para uso futuro) */
+  whatsapp: string | null;
+}
+
+/**
+ * @description Busca un vendedor por su slug de URL.
+ * Retorna `null` si el slug no existe (404 en el catálogo).
+ *
+ * @param slug - Slug de la URL, ej: "anny" de /laminas-anny
+ * @returns Datos del vendedor o null si no existe
+ */
+export async function fetchSeller(slug: string): Promise<SellerPublic | null> {
+  const { data, error } = await supabase
+    .from("sellers")
+    .select("slug, display_name, inventario, whatsapp")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("Error buscando vendedor:", error.message);
+    return null;
+  }
+  if (!data) return null;
+
+  return {
+    slug:        data.slug,
+    displayName: data.display_name,
+    inventario:  data.inventario,
+    whatsapp:    data.whatsapp ?? null,
+  };
 }

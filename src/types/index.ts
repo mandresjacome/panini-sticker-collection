@@ -3,6 +3,14 @@
  * Todas las entidades, enumeraciones y tipos de utilidad del negocio.
  */
 
+/**
+ * @description Identifica el grupo de inventario al que pertenece un conjunto de láminas.
+ *
+ * - `CN` — Inventario de Cristian y Nicolás (el original)
+ * - `AM` — Inventario de Anny y Mario (independiente)
+ */
+export type Inventario = "CN" | "AM";
+
 // ---------------------------------------------------------------------------
 // Estados de lámina
 // ---------------------------------------------------------------------------

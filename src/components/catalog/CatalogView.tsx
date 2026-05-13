@@ -6,8 +6,9 @@
  */
 
 import { useState, useMemo } from "react";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { fetchAvailableStickers, fetchPublicTeams } from "../../services/catalogService";
+import { fetchAvailableStickers, fetchPublicTeams, fetchSeller } from "../../services/catalogService";
 import { sortByAlbumOrder, TEAM_GROUP_LABEL, TEAM_FLAG } from "../../lib/albumOrder";
 import { getStickerCategory } from "../../lib/stickerCategory";
 import { CATEGORY_META } from "../../types";
@@ -137,13 +138,41 @@ export function CatalogView() {
   const [search, setSearch] = useState("");
   const [quoteExpanded, setQuoteExpanded] = useState(false);
 
+  /**
+   * `slug` presente cuando la ruta es /laminas-:slug (ej: "anny", "mario").
+   * undefined cuando se accede desde la ruta raíz /.
+   */
+  // slug presente en /laminas/:slug (ej: "replica"), undefined en la ruta raíz /
+  const { slug } = useParams<{ slug: string }>();
+
+  /**
+   * Datos del vendedor: solo se busca cuando hay slug en la URL.
+   * Retorna null si el slug no existe en la tabla sellers.
+   */
+  const { data: seller, isFetched: sellerFetched } = useQuery({
+    queryKey: ["catalog", "seller", slug],
+    queryFn:  () => fetchSeller(slug!),
+    enabled:  !!slug,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  /**
+   * Inventario a consultar:
+   * - Ruta con slug → usar el inventario del seller ('AM' o 'CN')
+   * - Ruta raíz /   → inventario por defecto 'CN'
+   * Si hay slug pero el seller aún no cargó, esperar antes de buscar stickers.
+   */
+  const inventario: string = (slug ? seller?.inventario : undefined) ?? "CN";
+  const stickersEnabled = !slug || sellerFetched;
+
   const {
     data: stickersByTeam,
     isLoading: loadingStickers,
     error: errorStickers,
   } = useQuery({
-    queryKey: ["catalog", "stickers"],
-    queryFn:  fetchAvailableStickers,
+    queryKey: ["catalog", "stickers", inventario],
+    queryFn:  () => fetchAvailableStickers(inventario),
+    enabled:  stickersEnabled,
     refetchInterval: 60_000,
     staleTime:       30_000,
   });
@@ -269,7 +298,7 @@ export function CatalogView() {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex-1">
               <h1 className="text-xl font-black leading-tight tracking-tight" style={{ color: "#ffffff" }}>
-                🏆 Láminas Panini
+                🏆 Láminas Panini{seller ? ` — ${seller.displayName}` : ""}
               </h1>
               <p className="text-sm mt-0.5">
                 <span className="font-black" style={{ color: "#FFC72C" }}>{totalAvailable}</span>

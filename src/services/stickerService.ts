@@ -7,7 +7,7 @@
  */
 
 import { supabase } from "../lib/supabaseClient";
-import type { Sticker, StickerStatus, StickerCategoryOverride, StickersMap } from "../types";
+import type { Sticker, StickerStatus, StickerCategoryOverride, StickersMap, Inventario } from "../types";
 
 // ---------------------------------------------------------------------------
 // Tipos internos
@@ -98,16 +98,18 @@ function validateStickerState(status: StickerStatus, quantity: number): void {
 // ---------------------------------------------------------------------------
 
 /**
- * @description Obtiene todos los stickers de la colección como mapa normalizado.
+ * @description Obtiene todos los stickers del inventario indicado como mapa normalizado.
  * Retornar un Record<code, Sticker> permite actualizaciones O(1) en el store.
+ * @param inventario - Grupo de inventario a consultar ('CN' o 'AM')
  * @returns Mapa de stickers indexado por código, o lanza error si falla la query
  */
-export async function fetchAllStickers(): Promise<StickersMap> {
+export async function fetchAllStickers(inventario: Inventario): Promise<StickersMap> {
   const { data, error } = await supabase
     .from("stickers")
     .select("*")
-    .order("equipo")        // Ordenar por equipo facilita la agrupación en la Vista Matriz
-    .order("codigo");       // Dentro del equipo, ordenar por código
+    .eq("inventario", inventario)  // Filtrar solo el inventario del usuario autenticado
+    .order("equipo")               // Ordenar por equipo facilita la agrupación en la Vista Matriz
+    .order("codigo");              // Dentro del equipo, ordenar por código
 
   if (error) {
     throw new Error(`Error al cargar las láminas: ${error.message}`);
@@ -140,7 +142,8 @@ export async function fetchAllStickers(): Promise<StickersMap> {
 export async function cycleNextStatus(
   code: string,
   currentStatus: StickerStatus,
-  currentQuantity: number
+  currentQuantity: number,
+  inventario: Inventario
 ): Promise<Sticker> {
   // Solo dos estados: F ↔ D
   const nextStatus: StickerStatus = currentStatus === "F" ? "D" : "F";
@@ -154,7 +157,7 @@ export async function cycleNextStatus(
   // Validar invariante antes de escribir
   validateStickerState(nextStatus, nextQuantity);
 
-  return updateSticker(code, { status: nextStatus, quantity: nextQuantity });
+  return updateSticker(code, inventario, { status: nextStatus, quantity: nextQuantity });
 }
 
 /**
@@ -167,6 +170,7 @@ export async function cycleNextStatus(
  */
 export async function updateSticker(
   code: string,
+  inventario: Inventario,
   fields: Partial<Pick<Sticker, "status" | "quantity" | "notes" | "categoria" | "precio">>
 ): Promise<Sticker> {
   // Si vienen status y quantity juntos, validar la combinación
@@ -188,6 +192,7 @@ export async function updateSticker(
     .from("stickers")
     .update(update)
     .eq("codigo", code)
+    .eq("inventario", inventario)  // PK compuesto: codigo + inventario
     .select()
     .single();
 

@@ -1,6 +1,6 @@
 # Avance de Desarrollo — App Láminas FIFA World Cup 2026
 
-**Fecha de última actualización:** 13 de mayo de 2026 — Sesión 12
+**Fecha de última actualización:** 13 de mayo de 2026 — Sesión 13
 
 ---
 
@@ -18,8 +18,9 @@
 
 **App deployada y funcionando en producción.**
 
-- URL pública (catálogo): **https://panini-sticker-collection.vercel.app**
-- Panel admin: **https://panini-sticker-collection.vercel.app/admin**
+- **URL pública (catálogo CN — Cristian/Nicolás):** **https://panini-sticker-collection.vercel.app**
+- **URL catálogo AM (Anny/Mario):** **https://panini-sticker-collection.vercel.app/laminas/replica**
+- **Panel admin:** **https://panini-sticker-collection.vercel.app/admin**
 - Repositorio: **https://github.com/mandresjacome/panini-sticker-collection**
 - Deploy automático: cada push a `main` → Vercel redespliega
 
@@ -58,6 +59,7 @@ panini-sticker-collection/
 │   ├── migrations/002_add_categoria_column.sql  ✅ Ejecutado — columna `categoria` TEXT (TOP/GOAT)
 │   ├── migrations/003_add_pricing.sql    ✅ Ejecutado — tabla `category_prices` + columna `precio`
 │   ├── migrations/004_add_sticker_names.sql  ✅ Ejecutado — columna `nombre` + 1020 UPDATEs oficiales
+│   ├── migrations/005_create_sellers.sql ✅ Ejecutado — columna inventario + PK compuesto + filas AM + tabla sellers
 │   └── seed.sql                          ✅ Ejecutado — 994 láminas en DB
 ├── src/
 │   ├── types/index.ts          ✅ Solo estados F y D (simplificado)
@@ -143,13 +145,14 @@ panini-sticker-collection/
   - `updateSticker(code, fields)` → acepta `categoria` (TOP/GOAT/null), **`precio` (number|null)** además de status/quantity/notes
   - `validateStickerState(status, quantity)` → lanza error si `status=F && quantity>0`
   - Mapeo DB (snake_case español) ↔ TypeScript (camelCase inglés)
-- **`src/services/catalogService.ts`** ✅ — lectura pública, solo `estado = 'D'`, rol anon; incluye campos `categoria`, **`precio`** y **`nombre`** en el SELECT para cotización y nombre en catálogo
+- **`src/services/catalogService.ts`** ✅ — lectura pública; `fetchAvailableStickers(inventario)` filtra por inventario; `fetchSeller(slug)` retorna `SellerPublic` con campo `inventario`
 - **`src/services/categoryPriceService.ts`** ✅ — **NUEVO** · `fetchCategoryPrices()` → `CategoryPricesMap`; `updateCategoryPrice(category, price)` → UPSERT en tabla `category_prices`; RLS: authenticated rw, anon read
 
 ### Estado global
 - **`src/store/stickerStore.ts`** ✅ — Zustand con `StickersMap`, `upsertSticker` O(1), selectores derivados
 
 ### Hooks
+- **`src/hooks/useInventario.ts`** ✅ — mapea email del admin autenticado a `Inventario` ('CN' o 'AM'); usado internamente por `useStickers`
 - **`src/hooks/useAuth.ts`** ✅ — sesión reactiva con `onAuthStateChange`
 - **`src/hooks/useStickers.ts`** ✅ — TanStack Query + Realtime + mutaciones + métricas derivadas; `updateStickerFields` acepta campo **`precio`**; Realtime handler propaga `precio`
 - **`src/hooks/useTeams.ts`** ✅ — nombres completos de equipos (staleTime 30min)
@@ -160,7 +163,7 @@ panini-sticker-collection/
 - **`src/components/ui/LoginForm.tsx`** ✅ — formulario de login con diseño FIFA 2026
 - **`src/components/ui/Footer.tsx`** ✅ — footer compartido con créditos AmalfiDev, franja 7 colores, texto `@n_baez1` en amarillo Panini
 - **`src/components/admin/AdminLayout.tsx`** ✅ — layout protegido, header oscuro + franja multicolor + nav amarillo activo
-- **`src/components/catalog/CatalogView.tsx`** ✅ — catálogo público, ruta `/`, solo láminas D, ordenado por álbum con banderas y etiqueta de grupo; chips de color por categoría con precio debajo (`flex-col`); **leyenda rediseñada** con título, descripción y chips centrados que muestran "Desde $X.XXX" por categoría; **chips seleccionables para cotización**; **barra CTA siempre visible** en la parte inferior ("¡Ya puedes cotizar! Toca una lámina para empezar" cuando el carrito está vacío, se transforma en `QuotePanel` cuando hay ítems); panel flotante `QuotePanel` con contador + total + botón WhatsApp + copia al portapapeles + previsualización del mensaje; indicador de selección en el header; **español colombiano** (puedes/Toca)
+- **`src/components/catalog/CatalogView.tsx`** ✅ — catálogo público; ruta `/` (CN) y `/laminas/:slug` (inventario del seller); header muestra nombre del vendedor cuando hay slug; `useParams` + query a `sellers`
 - **`src/components/matrix/StickerCell.tsx`** ✅ — celda con color de estado, badge cantidad, clic derecho; punto de color de categoría en esquina sup-izq (solo categorías no-Básicas); **tooltip muestra `CODE — NombreJugador`** (sin prefijo de equipo)
 - **`src/components/matrix/TeamSection.tsx`** ✅ — colapsable, bandera emoji (sin barra de progreso)
 - **`src/components/matrix/MatrixView.tsx`** ✅ — grupos del álbum con separadores, chips Faltan/Disponibles; leyenda extendida con fila de puntos de categoría; **conecta `useCategoryPrices`** y pasa `categoryPrices` + `onUpdateCategoryPrice` al `StickerContextMenu`
@@ -177,7 +180,9 @@ panini-sticker-collection/
 - **Columna `categoria`:** `TEXT CHECK (IN ('TOP','GOAT')) DEFAULT NULL` — override manual; null = auto-derivado en frontend
 - **Columna `precio` en `stickers`:** `INTEGER DEFAULT NULL` — override individual; null = heredar precio default de `category_prices`
 - **Columna `nombre` en `stickers`:** `TEXT DEFAULT NULL` — nombre oficial Panini (ej: `"Mexico - Hirving Lozano"`); fuente: paninitrade.com; 1020 de 994 filas con nombre (incluye EX-, CC-, FWC-)
-- **RLS:** habilitado — `authenticated` puede leer/escribir; `anon` puede leer estado `D` y tabla `category_prices`
+- **Columna `inventario` en `stickers`:** `TEXT NOT NULL DEFAULT 'CN'` — identifica el grupo propietario: `CN` (Cristian/Nicolás) o `AM` (Anny/Mario); PK ahora es `(codigo, inventario)`
+- **Tabla `sellers`:** slug (URL), display_name, inventario, whatsapp (null), created_at; sellers: `replica`(AM), `cristian`(CN), `nicolas`(CN)
+- **RLS:** habilitado — `authenticated` puede leer/escribir; `anon` puede leer estado `D` y tablas `category_prices`, `sellers`
 - **Realtime:** habilitado en tabla `stickers`
 - **Usuarios admin:** nicolas, cristian, anny, mario @panini2026.com
 
@@ -332,6 +337,17 @@ Funciona en ambas vistas. Ideas de mejora futura:
     - `MetricCard` ahora usa `min-w-0` + `truncate` en el valor para evitar desbordamiento; fuente se reduce a `text-2xl` cuando el valor tiene más de 8 caracteres (ej: `$1.524.000`)
     - Subtítulo de "Ticket promedio" limpia `(FOIL)` y sufijos antes de mostrar la lámina más valiosa; trunca a 22 caracteres
     - Tabla "Valor por categoría": columna "Códigos" oculta en mobile (`hidden sm:table-cell`), solo visible en sm+; queda Categoría · Unidades · Valor que sí encajan sin scroll horizontal
+
+53. **Multi-vendedor — inventarios separados + rutas por vendedor** — Sesión 13:
+    - Nueva migración `005_create_sellers.sql` — columna `inventario TEXT DEFAULT 'CN'` en `stickers`; PK cambia a `(codigo, inventario)`; se duplican 994 filas CN → AM (todo F/0); tabla `sellers` (slug, display_name, inventario, whatsapp, created_at) con RLS anon read; sellers insertados: `replica`(AM), `cristian`(CN), `nicolas`(CN)
+    - Nuevo tipo `Inventario = "CN" | "AM"` en `types/index.ts`
+    - Nuevo hook `useInventario.ts` — mapea email del usuario a inventario: `anny@/mario@panini2026.com` → AM, resto → CN
+    - `stickerService.ts` — `fetchAllStickers(inventario)`, `updateSticker(code, inventario, fields)`, `cycleNextStatus(..., inventario)` filtran por inventario en todas las queries
+    - `catalogService.ts` — `fetchAvailableStickers(inventario)` filtra por inventario; `SellerPublic` incluye campo `inventario`; `fetchSeller(slug)` lo retorna
+    - `useStickers.ts` — llama `useInventario()` internamente; pasa inventario a queries, mutaciones y canal Realtime; `queryKey` incluye inventario para cachés separadas
+    - `App.tsx` — ruta `/laminas/:slug` (barra antes del param, necesario para React Router v6)
+    - `CatalogView.tsx` — `useParams<{slug}>()` + query seller; `inventario = seller?.inventario ?? 'CN'`; header `🏆 Láminas Panini — Láminas Réplica` cuando hay seller
+    - URLs finales: `/` (CN — Cristian/Nicolás), `/laminas/replica` (AM — Anny/Mario)
 
 50. **Dashboard — métricas financieras y desglose por categoría** — `DashboardView.tsx`:
     - `valorTotal` = suma de `precio efectivo × cantidad` de todas las láminas con estado `D`

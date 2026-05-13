@@ -13,11 +13,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabaseClient";
 import { fetchAllStickers, cycleNextStatus, updateSticker } from "../services/stickerService";
 import { useStickerStore } from "../store/stickerStore";
-import type { Sticker, StickerStatus, StickerCategoryOverride, StickersMap } from "../types";
+import { useInventario } from "./useInventario";
+import type { Sticker, StickerStatus, StickerCategoryOverride, StickersMap, Inventario } from "../types";
 import { TOTAL_STICKERS as TOTAL } from "../types";
 
-// Clave de caché de TanStack Query para el inventario completo
-const STICKERS_QUERY_KEY = ["stickers"] as const;
+// La clave de caché incluye el inventario para que CN y AM tengan datos separados
+function stickerQueryKey(inventario: Inventario | null) {
+  return ["stickers", inventario] as const;
+}
 
 // ---------------------------------------------------------------------------
 // Tipos de retorno
@@ -74,12 +77,22 @@ export function useStickers(): UseStickersReturn {
           isLoading, error,
           getStickersArray, getStickersByTeam, getStickersByStatus } = useStickerStore();
 
+  /**
+   * Inventario del usuario autenticado.
+   * null = sesion todavía cargando (AdminLayout impide montar antes de que esté listo).
+   */
+  const inventario = useInventario();
+
+  // Clave de caché específica para este inventario
+  const STICKERS_QUERY_KEY = stickerQueryKey(inventario);
+
   // -------------------------------------------------------------------------
   // 1. Carga inicial con TanStack Query
   // -------------------------------------------------------------------------
   const { isLoading: queryLoading, error: queryError } = useQuery({
     queryKey: STICKERS_QUERY_KEY,
-    queryFn:  fetchAllStickers,
+    queryFn:  () => fetchAllStickers(inventario!),
+    enabled:  !!inventario,   // Esperar a que el inventario esté determinado
     // No refetch automático en background — Realtime mantendrá los datos frescos
     refetchOnWindowFocus: false,
   });
@@ -107,15 +120,19 @@ export function useStickers(): UseStickersReturn {
   // 2. Supabase Realtime — actualizaciones colaborativas en tiempo real
   // -------------------------------------------------------------------------
   useEffect(() => {
-    // Suscribirse a todos los cambios (INSERT, UPDATE, DELETE) en la tabla stickers
+    // Solo suscribirse cuando ya sabemos el inventario
+    if (!inventario) return;
+
+    // Suscribirse solo a cambios del inventario de este usuario
     const channel = supabase
-      .channel("stickers-realtime")
+      .channel(`stickers-realtime-${inventario}`)
       .on(
         "postgres_changes",
         {
-          event:  "*",         // Escuchar INSERT, UPDATE y DELETE
+          event:  "*",
           schema: "public",
           table:  "stickers",
+          filter: `inventario=eq.${inventario}`,  // Filtrar por inventario en Realtime
         },
         (payload) => {
           if (payload.eventType === "UPDATE" || payload.eventType === "INSERT") {
@@ -156,7 +173,7 @@ export function useStickers(): UseStickersReturn {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [upsertSticker]);
+  }, [upsertSticker, inventario]);  // Recrear canal si cambia el inventario
 
   // -------------------------------------------------------------------------
   // 3. Mutaciones
@@ -168,7 +185,7 @@ export function useStickers(): UseStickersReturn {
    */
   const cycleMutation = useMutation({
     mutationFn: ({ sticker }: { sticker: Sticker }) =>
-      cycleNextStatus(sticker.code, sticker.status, sticker.quantity),
+      cycleNextStatus(sticker.code, sticker.status, sticker.quantity, inventario!),
 
     onSuccess: (updatedSticker) => {
       // Confirmar la actualización en el store con los datos reales del servidor
@@ -190,7 +207,7 @@ export function useStickers(): UseStickersReturn {
     }: {
       code: string;
       fields: Partial<Pick<Sticker, "status" | "quantity" | "notes" | "categoria" | "precio">>;
-    }) => updateSticker(code, fields),
+    }) => updateSticker(code, inventario!, fields),
 
     onSuccess: (updatedSticker) => {
       upsertSticker(updatedSticker);
