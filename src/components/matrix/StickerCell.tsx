@@ -110,6 +110,21 @@ export function StickerCell({ sticker, onRightClick, onQuoteToggle, quoteQty = 0
   // Ej: "MEX10" → "10", "FWC1" → "1", "CC14" → "14"
   const shortCode = sticker.code.replace(sticker.team, "");
 
+  // Nombre para mostrar en la celda: se quita el prefijo de equipo
+  // (ej: "Mexico - Hirving Lozano" → "Hirving Lozano")
+  const displayName = sticker.name
+    ? sticker.name.includes(" - ")
+      ? sticker.name.split(" - ").slice(1).join(" - ")
+      : sticker.name
+    : null;
+
+  // Separar nombre y apellido para el layout de mini-tarjeta:
+  // "Hirving Lozano" → firstName="Hirving", lastName="Lozano"
+  // Nombres compuestos: "Myung-jae Lee" → firstName="Myung-jae", lastName="Lee"
+  const nameParts   = displayName ? displayName.split(" ") : [];
+  const firstName   = nameParts[0] ?? null;
+  const lastName    = nameParts.length > 1 ? nameParts.slice(1).join(" ") : null;
+
   return (
     <button
       onClick={handleClick}
@@ -128,8 +143,10 @@ export function StickerCell({ sticker, onRightClick, onQuoteToggle, quoteQty = 0
       }
       aria-label={`Lámina ${sticker.code}, estado ${meta.label}, categoría ${categoryMeta.label}. Toca para opciones.`}
       className={[
-        "relative flex items-center justify-center",
-        "w-10 h-10 rounded text-xs font-bold",
+        "relative flex flex-col items-center justify-center",
+        "w-16 rounded font-bold",
+        // Altura adaptativa: mini-tarjeta cuando hay nombre, cuadrado simple si no
+        displayName ? "h-16 gap-0 py-1" : "h-10",
         "transition-all duration-150 cursor-pointer select-none",
         "hover:scale-110 hover:z-10 hover:shadow-md",
         "active:scale-95",
@@ -137,7 +154,29 @@ export function StickerCell({ sticker, onRightClick, onQuoteToggle, quoteQty = 0
         cellColor,
       ].join(" ")}
     >
-      {shortCode}
+      {/* Número arriba — elemento visual principal */}
+      <span className="text-xs font-black leading-none">
+        {shortCode}
+      </span>
+
+      {/* Nombre en el medio */}
+      {firstName && (
+        <span className="w-full text-center text-xs font-semibold leading-tight px-0.5 truncate opacity-90">
+          {firstName}
+        </span>
+      )}
+
+      {/* Apellido abajo */}
+      {lastName && (
+        <span className="w-full text-center text-xs font-semibold leading-tight px-0.5 truncate opacity-90">
+          {lastName}
+        </span>
+      )}
+
+      {/* Cuando hay nombre pero solo una palabra (sin apellido), dejar espacio visual */}
+      {firstName && !lastName && (
+        <span className="h-[9px]" aria-hidden="true" />
+      )}
 
       {/* Punto de categoría — esquina superior izquierda, solo en categorías especiales */}
       {showCategoryDot && (
