@@ -18,14 +18,17 @@ import type { Sticker, StickerCategory } from "../../types";
 function MetricCard({ icon, value, label, colorClass, subtitle }: {
   icon: string; value: number | string; label: string; colorClass: string; subtitle?: string;
 }) {
+  // Valores monetarios largos se reducen a text-2xl para no desbordar en mobile
+  const valueStr = String(value);
+  const valueSizeClass = valueStr.length > 8 ? "text-2xl" : "text-3xl";
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-      <div className="flex items-center gap-2">
-        <span className="text-2xl leading-none">{icon}</span>
-        <span className={`text-3xl font-black tabular-nums ${colorClass}`}>{value}</span>
+    <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-1 shadow-sm min-w-0">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-2xl leading-none shrink-0">{icon}</span>
+        <span className={`${valueSizeClass} font-black tabular-nums ${colorClass} truncate`}>{value}</span>
       </div>
       <p className="text-sm font-semibold text-gray-700 leading-tight">{label}</p>
-      {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
+      {subtitle && <p className="text-xs text-gray-400 break-words">{subtitle}</p>}
     </div>
   );
 }
@@ -261,14 +264,20 @@ export function DashboardView() {
           subtitle={
             laminaMasValiosa
               ? (() => {
-                  const name = laminaMasValiosa.name?.includes(" - ")
-                    ? laminaMasValiosa.name.split(" - ").slice(1).join(" - ")
-                    : laminaMasValiosa.name;
+                  // Limpia prefijo de equipo y sufijos redundantes para que quepa en mobile
+                  const rawName = laminaMasValiosa.name
+                    ?.replace(/^[^-]+ - /, "")
+                    .replace(/\s*\(FOIL\)/gi, "")
+                    .replace(/\s*\(Extra Sticker - Gold\)/gi, "")
+                    .replace(/\s*\(Variant\)/gi, "")
+                    .trim() ?? "";
                   const cat   = getStickerCategory(laminaMasValiosa) as StickerCategory;
                   const price = (laminaMasValiosa.precio !== null && laminaMasValiosa.precio !== undefined)
                     ? laminaMasValiosa.precio
                     : (categoryPrices[cat] ?? 0);
-                  return `🏆 ${laminaMasValiosa.code}${name ? ` — ${name}` : ""} · $${(price * laminaMasValiosa.quantity).toLocaleString("es-CO")}`;
+                  // Truncar el nombre a 22 caracteres para no desbordarse en mobile
+                  const shortName = rawName.length > 22 ? rawName.slice(0, 20) + "…" : rawName;
+                  return `🏆 ${laminaMasValiosa.code}${shortName ? ` — ${shortName}` : ""} · $${(price * laminaMasValiosa.quantity).toLocaleString("es-CO")}`;
                 })()
               : "Por unidad vendida"
           }
@@ -330,9 +339,9 @@ export function DashboardView() {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-left">
                 <th className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Categoría</th>
-                <th className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide text-center">Códigos</th>
-                <th className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide text-center">Unidades</th>
-                <th className="px-4 py-2 text-xs font-semibold text-emerald-600 uppercase tracking-wide text-right">Valor</th>
+                <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide text-center hidden sm:table-cell">Códigos</th>
+                <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide text-center">Unidades</th>
+                <th className="px-3 py-2 text-xs font-semibold text-emerald-600 uppercase tracking-wide text-right">Valor</th>
                 <th className="px-4 py-2 hidden sm:table-cell w-32" />
               </tr>
             </thead>
@@ -348,13 +357,13 @@ export function DashboardView() {
                         {meta.label}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-center">
+                    <td className="px-3 py-2 text-center hidden sm:table-cell">
                       <span className="font-mono text-xs text-gray-600 tabular-nums">{count}</span>
                     </td>
-                    <td className="px-4 py-2 text-center">
+                    <td className="px-3 py-2 text-center">
                       <span className="font-bold tabular-nums text-gray-700">{units}</span>
                     </td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-3 py-2 text-right">
                       <span className="font-black tabular-nums text-emerald-600">
                         ${valor.toLocaleString("es-CO")}
                       </span>
@@ -374,9 +383,9 @@ export function DashboardView() {
               {/* Fila de totales */}
               <tr className="bg-gray-50 border-t-2 border-gray-200">
                 <td className="px-4 py-2 font-bold text-gray-700 text-xs uppercase tracking-wide">Total</td>
-                <td className="px-4 py-2 text-center font-bold text-gray-700 tabular-nums">{codigosEnStock}</td>
-                <td className="px-4 py-2 text-center font-bold text-gray-700 tabular-nums">{unidadesTotales}</td>
-                <td className="px-4 py-2 text-right font-black text-emerald-700 tabular-nums">${valorTotal.toLocaleString("es-CO")}</td>
+                <td className="px-3 py-2 text-center font-bold text-gray-700 tabular-nums hidden sm:table-cell">{codigosEnStock}</td>
+                <td className="px-3 py-2 text-center font-bold text-gray-700 tabular-nums">{unidadesTotales}</td>
+                <td className="px-3 py-2 text-right font-black text-emerald-700 tabular-nums">${valorTotal.toLocaleString("es-CO")}</td>
                 <td className="hidden sm:table-cell" />
               </tr>
               {categoryStats.length === 0 && (

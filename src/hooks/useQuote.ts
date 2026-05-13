@@ -224,7 +224,17 @@ export function useQuote(
       const fmtSubtotal = subtotal.toLocaleString("es-CO");
       const qtyPart     = l.qty > 1 ? ` ×${l.qty}` : "";
 
-      return `• ${l.sticker.code}${qtyPart} (${catLabel}) — $${fmtSubtotal}`;
+      // Nombre limpio: quita prefijo de equipo y sufijos redundantes para el mensaje
+      const namePart = l.sticker.name
+        ? ` — ${l.sticker.name
+            .replace(/^[^-]+ - /, "")           // "Mexico - Hirving Lozano" → "Hirving Lozano"
+            .replace(/\s*\(FOIL\)/gi, "")        // "...Argentina 2022 (FOIL)" → "...Argentina 2022"
+            .replace(/\s*\(Extra Sticker - Gold\)/gi, "") // "Messi (Extra Sticker - Gold)" → "Messi"
+            .replace(/\s*\(Variant\)/gi, "")     // elimina "(Variant)" si aparece
+            .trim()}`
+        : "";
+
+      return `• ${l.sticker.code}${namePart}${qtyPart} (${catLabel}) — $${fmtSubtotal}`;
     });
 
     const formattedTotal = total.toLocaleString("es-CO");

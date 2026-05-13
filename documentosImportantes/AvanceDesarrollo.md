@@ -323,6 +323,16 @@ Funciona en ambas vistas. Ideas de mejora futura:
     - Cada botón usa `flex-col` con 3 filas: código (arriba) → nombre sin prefijo de equipo (`max-w-[80px] truncate`, `text-[9px]`) → precio (abajo)
     - Nombre visible solo cuando `sticker.name` existe, limpiando el prefijo `"Team - "` con la misma regex que `StickerCell`
 
+51. **Cotización — nombre de jugador en el panel y WhatsApp** — `useQuote.ts`:
+    - `whatsappText` ahora incluye el nombre del jugador por línea: `• MEX15 — Hirving Lozano (Básica) — $2.000`
+    - Limpieza de sufijos redundantes: `(FOIL)`, `(Extra Sticker - Gold)`, `(Variant)` y prefijo de equipo removidos
+    - Aplica tanto en el catálogo público como en la vista de matriz del admin (misma fuente de datos)
+
+52. **Dashboard — fixes mobile** — `DashboardView.tsx`:
+    - `MetricCard` ahora usa `min-w-0` + `truncate` en el valor para evitar desbordamiento; fuente se reduce a `text-2xl` cuando el valor tiene más de 8 caracteres (ej: `$1.524.000`)
+    - Subtítulo de "Ticket promedio" limpia `(FOIL)` y sufijos antes de mostrar la lámina más valiosa; trunca a 22 caracteres
+    - Tabla "Valor por categoría": columna "Códigos" oculta en mobile (`hidden sm:table-cell`), solo visible en sm+; queda Categoría · Unidades · Valor que sí encajan sin scroll horizontal
+
 50. **Dashboard — métricas financieras y desglose por categoría** — `DashboardView.tsx`:
     - `valorTotal` = suma de `precio efectivo × cantidad` de todas las láminas con estado `D`
     - `ticketPromedio` = `valorTotal / totalDisponibles` (con guarda contra división por cero)
