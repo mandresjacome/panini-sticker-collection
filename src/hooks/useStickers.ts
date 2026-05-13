@@ -165,6 +165,8 @@ export function useStickers(): UseStickersReturn {
               status:     finalStatus,
               quantity:   qty,
               notes:      row.observacion as string | undefined,
+              // Nombre oficial del jugador/lámina — DEBE incluirse o se pierde al sobreescribir el store
+              name:       (row.nombre as string) ?? undefined,
               // Propagar el override manual de categoría desde Realtime
               categoria:  (row.categoria as StickerCategoryOverride | null) ?? null,
               // Propagar el precio individual (override o null para heredar default)
