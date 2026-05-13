@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Set <html lang> before paint. Mirrors detectLanguage() in client/src/lib/i18n.tsx. -->
+    <script>
+      (function () {
+        function pickLang() {
+          try {
+            var saved = localStorage.getItem("panini-lang");
+            if (saved === "en" || saved === "es") return saved;
+          } catch (e) {}
+          var nav = (navigator.language || "en").split("-")[0];
+          return nav === "es" ? "es" : "en";
+        }
+        try { document.documentElement.lang = pickLang(); } catch (e) { document.documentElement.lang = "en"; }
+      })();
+    </script>
+    <meta name="google" content="notranslate" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+    <title>Panini Trade - Sticker & Card Collection Trading | Intercambio de Estampas y Tarjetas</title>
+    <meta name="description" content="Track your Panini sticker and card collections and find traders. World Cup 2026, Adrenalyn XL, NFL Prizm, Donruss, FIFA 365. Registra tus colecciones Panini y encuentra coleccionistas." />
+    <meta name="keywords" content="panini, world cup 2026, stickers, estampas, trading, intercambio, colección, album, FIFA, mundial, cromos, adrenalyn xl, nfl prizm, donruss, cards, tarjetas" />
+    <meta property="og:title" content="Panini Trade - Sticker & Card Collection Trading" />
+    <meta property="og:description" content="Track your Panini sticker and card collections and find traders. 5 collections: World Cup 2026, Adrenalyn XL, NFL Prizm, Donruss, FIFA 365." />
+    <meta property="og:image" content="https://paninitrade.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://paninitrade.com" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="es_MX" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Panini Trade - Sticker & Card Collection Trading" />
+    <meta name="twitter:description" content="Track your Panini sticker and card collections and find traders. 5 collections available." />
+    <meta name="twitter:image" content="https://paninitrade.com/og-image.png" />
+    <!-- Google Search Console: uncomment the line below and replace REPLACE_ME with your verification code from Google Search Console -->
+    <!-- <meta name="google-site-verification" content="REPLACE_ME" /> -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="canonical" href="https://paninitrade.com" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Panini Trade" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Panini Trade",
+      "url": "https://paninitrade.com",
+      "description": "Free tool to track your Panini sticker and card collections and find traders. Supports FIFA World Cup 2026, Adrenalyn XL, NFL Prizm, Donruss, and FIFA 365. Herramienta gratuita para registrar tus colecciones Panini y encontrar coleccionistas.",
+      "applicationCategory": "UtilityApplication",
+      "operatingSystem": "Web",
+      "offers": [
+        {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "name": "Free - Collection Tracking"
+        },
+        {
+          "@type": "Offer",
+          "price": "4",
+          "priceCurrency": "USD",
+          "name": "Trade Matching Access - All Collections"
+        }
+      ],
+      "featureList": [
+        "Track 5 Panini collections: World Cup 2026, Adrenalyn XL, NFL Prizm, Donruss, FIFA 365",
+        "Mark extras and duplicates",
+        "Find mutual trade matches across collections",
+        "Contact traders via WhatsApp, Telegram, Instagram",
+        "Available in English and Spanish"
+      ],
+      "inLanguage": ["en", "es"],
+      "screenshot": "https://paninitrade.com/og-image.png"
+    }
+    </script>
+    <script type="module" crossorigin src="/assets/index-BD49vGp8.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DmOdAuo5.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

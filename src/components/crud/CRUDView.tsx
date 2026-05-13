@@ -157,6 +157,23 @@ function EditableRow({
         <span className="hidden sm:inline">{teamName}</span>
       </td>
 
+      {/* Nombre oficial de la lámina */}
+      <td className="px-3 py-2 text-sm text-gray-700 hidden lg:table-cell max-w-xs">
+        {sticker.name ? (
+          <span
+            className="block truncate"
+            title={sticker.name}
+          >
+            {/* Mostrar solo la parte después del guion (quitar prefijo de equipo) */}
+            {sticker.name.includes(" - ")
+              ? sticker.name.split(" - ").slice(1).join(" - ")
+              : sticker.name}
+          </span>
+        ) : (
+          <span className="text-gray-300 text-xs">—</span>
+        )}
+      </td>
+
       {/* Tipo + Categoría visual */}
       <td className="px-3 py-2 whitespace-nowrap hidden md:table-cell">
         {/* Badge de categoría con color — muestra la categoría actual (auto o manual) */}
@@ -333,13 +350,14 @@ export function CRUDView() {
     const search = searchText.trim().toLowerCase();
 
     const filtered = stickersArray.filter((s) => {
-      // Filtro de texto: busca en código, equipo y tipo
+      // Filtro de texto: busca en código, equipo, tipo y nombre de la lámina
       if (search) {
         const inCode  = s.code.toLowerCase().includes(search);
         const inTeam  = s.team.toLowerCase().includes(search);
         const inType  = s.type.toLowerCase().includes(search);
         const inName  = (teamsMap[s.team] ?? "").toLowerCase().includes(search);
-        if (!inCode && !inTeam && !inType && !inName) return false;
+        const inStickerName = (s.name ?? "").toLowerCase().includes(search);
+        if (!inCode && !inTeam && !inType && !inName && !inStickerName) return false;
       }
 
       // Filtro de equipo exacto
@@ -525,7 +543,7 @@ export function CRUDView() {
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Buscar por código, equipo o tipo… (ej. MEX10)"
+            placeholder="Buscar por código, nombre, equipo… (ej. MEX10, Messi, Lozano)"
             className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
           />
           {/* Botón limpiar búsqueda */}
@@ -584,6 +602,7 @@ export function CRUDView() {
                 <tr className="bg-gray-50 border-b border-gray-200 text-left">
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Código</th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Equipo</th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Nombre</th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Categoría</th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cantidad</th>

@@ -107,7 +107,15 @@ function CatalogTeamSection({ teamCode, teamName, stickers, isSelected, getQuant
                   <sup className="ml-0.5 text-[10px] font-bold opacity-70">×{sticker.quantity}</sup>
                 )}
               </span>
-              {/* Precio debajo del código — solo cuando no está seleccionada */}
+              {/* Nombre oficial de la lámina — sin prefijo de equipo */}
+              {sticker.name && (
+                <span className="text-[9px] font-normal opacity-60 mt-0.5 leading-tight text-center max-w-[80px] truncate">
+                  {sticker.name.includes(" - ")
+                    ? sticker.name.split(" - ").slice(1).join(" - ")
+                    : sticker.name}
+                </span>
+              )}
+              {/* Precio debajo del nombre — solo cuando no está seleccionada */}
               {!selected && price > 0 && (
                 <span className="text-[9px] font-bold opacity-55 mt-0.5 leading-none">
                   ${price.toLocaleString("es-CO")}

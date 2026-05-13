@@ -115,15 +115,16 @@ export function StickerCell({ sticker, onRightClick, onQuoteToggle, quoteQty = 0
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       title={
-        onQuoteToggle
-          ? `${sticker.code} — ${categoryMeta.label}${
-              quoteQty > 0 ? ` · ${quoteQty} en cotización` : ""
-            }\nToca para ${
-              quoteQty >= sticker.quantity ? "sacar de cotización" : quoteQty > 0 ? "agregar 1 más" : "agregar a cotización"
+        // Formato limpio: "KOR9 — Myung-jae Lee"
+        // Se elimina el prefijo de equipo del nombre (ej: "South Korea - ") porque
+        // el contexto del equipo ya es visible en la sección de la matriz.
+        sticker.name
+          ? `${sticker.code} — ${
+              sticker.name.includes(" - ")
+                ? sticker.name.split(" - ").slice(1).join(" - ")
+                : sticker.name
             }`
-          : `${sticker.code} — ${meta.label} · ${categoryMeta.label}${
-              sticker.quantity > 1 ? ` (x${sticker.quantity})` : ""
-            }\nToca para cambiar estado`
+          : sticker.code
       }
       aria-label={`Lámina ${sticker.code}, estado ${meta.label}, categoría ${categoryMeta.label}. Toca para opciones.`}
       className={[

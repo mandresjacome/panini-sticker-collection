@@ -22,6 +22,8 @@ interface PublicStickerRow {
   categoria: StickerCategoryOverride | null;
   /** Precio individual de venta (null = usar default de la categoría) */
   precio:    number | null;
+  /** Nombre oficial de la lámina. Ej: "Mexico - Hirving Lozano" */
+  nombre:    string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -39,7 +41,7 @@ interface PublicStickerRow {
 export async function fetchAvailableStickers(): Promise<Record<string, Sticker[]>> {
   const { data, error } = await supabase
     .from("stickers")
-    .select("codigo, equipo, tipo, estado, cantidad, categoria, precio")
+    .select("codigo, equipo, tipo, estado, cantidad, categoria, precio, nombre")
     .eq("estado", "D")       // Filtro explícito + redundante con RLS (defensa en profundidad)
     .order("equipo")
     .order("codigo");
@@ -61,6 +63,8 @@ export async function fetchAvailableStickers(): Promise<Record<string, Sticker[]
       categoria: row.categoria ?? null,
       // Propagar el precio individual para la cotización (null = usar default de categoría)
       precio:    row.precio ?? null,
+      // Nombre oficial (undefined si la columna aún no tiene valor)
+      name:      row.nombre ?? undefined,
     };
     if (!grouped[sticker.team]) {
       grouped[sticker.team] = [];

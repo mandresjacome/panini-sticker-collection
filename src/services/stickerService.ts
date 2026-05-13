@@ -28,6 +28,8 @@ interface StickerRow {
   categoria:   StickerCategoryOverride | null;
   /** Precio individual de la lámina (null = usar default de su categoría) */
   precio:      number | null;
+  /** Nombre oficial de la lámina. Ej: "Mexico - Hirving Lozano" */
+  nombre:      string | null;
   updated_at:  string;
   updated_by:  string | null;
 }
@@ -64,6 +66,8 @@ function rowToSticker(row: StickerRow): Sticker {
     categoria:  row.categoria ?? null,
     // null = heredar precio default de la categoría; entero = precio individual
     precio:     row.precio ?? null,
+    // undefined cuando la columna nombre aún no tiene valor en la DB
+    name:       row.nombre ?? undefined,
     updated_at: row.updated_at,
     updated_by: row.updated_by ?? undefined,
   };

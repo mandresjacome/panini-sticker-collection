@@ -8,9 +8,12 @@
 import { useMemo, useState, useCallback } from "react";
 import { useStickers } from "../../hooks/useStickers";
 import { useTeams } from "../../hooks/useTeams";
+import { useCategoryPrices } from "../../hooks/useCategoryPrices";
 import { ALBUM_GROUP_ORDER, TEAM_GROUP_LABEL, TEAM_FLAG } from "../../lib/albumOrder";
 import { exportAvailableStickersToExcel } from "../../lib/exportUtils";
-import type { Sticker } from "../../types";
+import { getStickerCategory } from "../../lib/stickerCategory";
+import { CATEGORY_META } from "../../types";
+import type { Sticker, StickerCategory } from "../../types";
 
 function MetricCard({ icon, value, label, colorClass, subtitle }: {
   icon: string; value: number | string; label: string; colorClass: string; subtitle?: string;
@@ -33,6 +36,7 @@ interface GroupStats { label: string; units: number; max: number; }
 export function DashboardView() {
   const { stickersArray, isLoading, error } = useStickers();
   const { teamsMap, teamsLoading } = useTeams();
+  const { categoryPrices } = useCategoryPrices();
 
   /** Controla el spinner del botón mientras se genera el Excel */
   const [isExporting, setIsExporting] = useState(false);
@@ -52,7 +56,8 @@ export function DashboardView() {
     // Ceder el hilo un tick para que React re-renderice el spinner
     setTimeout(() => {
       try {
-        exportAvailableStickersToExcel(stickersArray);
+        // Pasa los precios reales de Supabase para que el Excel refleje los valores actuales
+        exportAvailableStickersToExcel(stickersArray, categoryPrices);
       } catch (err) {
         setExportError(err instanceof Error ? err.message : "Error al exportar");
       } finally {
@@ -101,6 +106,65 @@ export function DashboardView() {
   }, [availableStickers, teamsMap]);
 
   const topTeam = teamStats[0] ?? null;
+
+  /**
+   * @description Valor total del inventario disponible.
+   * Suma precio_efectivo × cantidad para cada lámina en stock.
+   * El precio efectivo usa el override individual si existe, o el default de categoría.
+   */
+  const valorTotal = useMemo(() => {
+    return availableStickers.reduce((sum, s) => {
+      const cat   = getStickerCategory(s);
+      const price = (s.precio !== null && s.precio !== undefined)
+        ? s.precio
+        : (categoryPrices[cat] ?? 0);
+      return sum + price * s.quantity;
+    }, 0);
+  }, [availableStickers, categoryPrices]);
+
+  /**
+   * @description Precio promedio por unidad de todo el stock disponible.
+   * valorTotal ÷ unidadesTotales. Indica cuánto vale en promedio cada lámina.
+   */
+  const ticketPromedio = unidadesTotales > 0
+    ? Math.round(valorTotal / unidadesTotales)
+    : 0;
+
+  /**
+   * @description Lámina con mayor valor total (precio × cantidad).
+   * Indica dónde está concentrado el mayor valor del inventario.
+   */
+  const laminaMasValiosa = useMemo(() => {
+    if (availableStickers.length === 0) return null;
+    return availableStickers.reduce((max, s) => {
+      const catMax  = getStickerCategory(max);
+      const catS    = getStickerCategory(s);
+      const priceMax = (max.precio !== null && max.precio !== undefined) ? max.precio : (categoryPrices[catMax] ?? 0);
+      const priceS   = (s.precio   !== null && s.precio   !== undefined) ? s.precio   : (categoryPrices[catS]   ?? 0);
+      return (priceS * s.quantity) > (priceMax * max.quantity) ? s : max;
+    });
+  }, [availableStickers, categoryPrices]);
+
+  /**
+   * @description Estadísticas agrupadas por categoría de lámina.
+   * Ordenadas de mayor a menor valor total para identificar las categorías más rentables.
+   */
+  const categoryStats = useMemo(() => {
+    const map: Record<string, { count: number; units: number; valor: number }> = {};
+    for (const s of availableStickers) {
+      const cat   = getStickerCategory(s) as StickerCategory;
+      const price = (s.precio !== null && s.precio !== undefined)
+        ? s.precio
+        : (categoryPrices[cat] ?? 0);
+      if (!map[cat]) map[cat] = { count: 0, units: 0, valor: 0 };
+      map[cat].count += 1;
+      map[cat].units += s.quantity;
+      map[cat].valor += price * s.quantity;
+    }
+    return Object.entries(map)
+      .map(([cat, stats]) => ({ cat: cat as StickerCategory, ...stats }))
+      .sort((a, b) => b.valor - a.valor);
+  }, [availableStickers, categoryPrices]);
 
   const groupStats: GroupStats[] = useMemo(() => {
     const unitsByTeam: Record<string, number> = {};
@@ -176,11 +240,39 @@ export function DashboardView() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <MetricCard icon="🏷️" value={codigosEnStock} label="Códigos en stock" colorClass="text-green-600" subtitle="Láminas distintas disponibles" />
         <MetricCard icon="📦" value={unidadesTotales} label="Unidades totales" colorClass="text-blue-600" subtitle="Copias físicas para vender" />
         <MetricCard icon="🔥" value={topSticker ? topSticker.code : "—"} label="Lámina más repetida" colorClass="text-orange-500" subtitle={topSticker ? `${topSticker.quantity} copias disponibles` : "Sin stock"} />
         <MetricCard icon="⭐" value={topTeam ? `${TEAM_FLAG[topTeam.code] ?? ""} ${topTeam.code}` : "—"} label="Equipo con más stock" colorClass="text-purple-600" subtitle={topTeam ? `${topTeam.units} unidades · ${topTeam.available} códigos` : "Sin stock"} />
+        {/* Nuevas métricas de valor */}
+        <MetricCard
+          icon="💰"
+          value={`$${valorTotal.toLocaleString("es-CO")}`}
+          label="Valor total del inventario"
+          colorClass="text-emerald-600"
+          subtitle="Precio × cantidad de todo el stock"
+        />
+        <MetricCard
+          icon="📈"
+          value={ticketPromedio > 0 ? `$${ticketPromedio.toLocaleString("es-CO")}` : "—"}
+          label="Ticket promedio"
+          colorClass="text-cyan-600"
+          subtitle={
+            laminaMasValiosa
+              ? (() => {
+                  const name = laminaMasValiosa.name?.includes(" - ")
+                    ? laminaMasValiosa.name.split(" - ").slice(1).join(" - ")
+                    : laminaMasValiosa.name;
+                  const cat   = getStickerCategory(laminaMasValiosa) as StickerCategory;
+                  const price = (laminaMasValiosa.precio !== null && laminaMasValiosa.precio !== undefined)
+                    ? laminaMasValiosa.precio
+                    : (categoryPrices[cat] ?? 0);
+                  return `🏆 ${laminaMasValiosa.code}${name ? ` — ${name}` : ""} · $${(price * laminaMasValiosa.quantity).toLocaleString("es-CO")}`;
+                })()
+              : "Por unidad vendida"
+          }
+        />
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -221,6 +313,74 @@ export function DashboardView() {
               ))}
               {top10.length === 0 && (
                 <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400 text-sm">Sin láminas disponibles</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Desglose por categoría ───────────────────────────────────────── */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100">
+          <h3 className="text-sm font-bold text-gray-800">💎 Valor por categoría</h3>
+          <p className="text-xs text-gray-400">Distribución del inventario valorado por tipo de lámina</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-100 text-left">
+                <th className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Categoría</th>
+                <th className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide text-center">Códigos</th>
+                <th className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide text-center">Unidades</th>
+                <th className="px-4 py-2 text-xs font-semibold text-emerald-600 uppercase tracking-wide text-right">Valor</th>
+                <th className="px-4 py-2 hidden sm:table-cell w-32" />
+              </tr>
+            </thead>
+            <tbody>
+              {categoryStats.map(({ cat, count, units, valor }) => {
+                const meta     = CATEGORY_META[cat];
+                const maxValor = categoryStats[0]?.valor ?? 1;
+                return (
+                  <tr key={cat} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-2">
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold ${meta.bg} ${meta.text}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${meta.dot} shrink-0`} />
+                        {meta.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <span className="font-mono text-xs text-gray-600 tabular-nums">{count}</span>
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <span className="font-bold tabular-nums text-gray-700">{units}</span>
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <span className="font-black tabular-nums text-emerald-600">
+                        ${valor.toLocaleString("es-CO")}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 hidden sm:table-cell">
+                      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                        {/* Barra proporcional al valor máximo de categoría */}
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${meta.dot}`}
+                          style={{ width: `${(valor / maxValor) * 100}%` }}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {/* Fila de totales */}
+              <tr className="bg-gray-50 border-t-2 border-gray-200">
+                <td className="px-4 py-2 font-bold text-gray-700 text-xs uppercase tracking-wide">Total</td>
+                <td className="px-4 py-2 text-center font-bold text-gray-700 tabular-nums">{codigosEnStock}</td>
+                <td className="px-4 py-2 text-center font-bold text-gray-700 tabular-nums">{unidadesTotales}</td>
+                <td className="px-4 py-2 text-right font-black text-emerald-700 tabular-nums">${valorTotal.toLocaleString("es-CO")}</td>
+                <td className="hidden sm:table-cell" />
+              </tr>
+              {categoryStats.length === 0 && (
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400 text-sm">Sin láminas disponibles</td></tr>
               )}
             </tbody>
           </table>

@@ -92,7 +92,13 @@ export interface Sticker {
    * Entero positivo = precio específico de esta lámina (ej. una metalizada rara vale más).
    */
   precio?: number | null;
-
+  /**
+   * Nombre oficial de la lámina (jugador, logo, foto equipo, etc.).
+   * Fuente: paninitrade.com/api/sticker-catalog.
+   * Ej: "Mexico - Hirving Lozano", "FIFA World Cup 2026 Official Emblem (FOIL)".
+   * undefined cuando la columna `nombre` de la DB aún no tiene valor.
+   */
+  name?: string;
   /** Fecha y hora de la última modificación (gestionado por Supabase) */
   updated_at?: string;
 
