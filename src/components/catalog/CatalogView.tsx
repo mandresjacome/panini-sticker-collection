@@ -32,13 +32,19 @@ interface CatalogTeamSectionProps {
   onToggle: (sticker: Sticker) => void;
   /** Mapa de precios por categoría para mostrar en cada lámina */
   categoryPrices: CategoryPricesMap;
+  /**
+   * Cuando false oculta el precio debajo de cada lámina.
+   * Usado para el inventario AM (Anny/Mario) cuyo sistema de venta es diferente.
+   * @default true
+   */
+  showPrices?: boolean;
 }
 
 // ---------------------------------------------------------------------------
 // Sub-componente: sección de un equipo
 // ---------------------------------------------------------------------------
 
-function CatalogTeamSection({ teamCode, teamName, stickers, isSelected, getQuantity, onToggle, categoryPrices }: CatalogTeamSectionProps) {
+function CatalogTeamSection({ teamCode, teamName, stickers, isSelected, getQuantity, onToggle, categoryPrices, showPrices = true }: CatalogTeamSectionProps) {
   const groupLabel = TEAM_GROUP_LABEL[teamCode];
   const flag = TEAM_FLAG[teamCode] ?? "🌐";
 
@@ -116,8 +122,8 @@ function CatalogTeamSection({ teamCode, teamName, stickers, isSelected, getQuant
                     : sticker.name}
                 </span>
               )}
-              {/* Precio debajo del nombre — solo cuando no está seleccionada */}
-              {!selected && price > 0 && (
+              {/* Precio debajo del nombre — solo cuando no está seleccionada y showPrices activo */}
+              {showPrices && !selected && price > 0 && (
                 <span className="text-[9px] font-bold opacity-55 mt-0.5 leading-none">
                   ${price.toLocaleString("es-CO")}
                 </span>
@@ -200,8 +206,45 @@ export function CatalogView() {
     clear,
     total,
     whatsappText,
+    quoteLines,
     selectedCodes,
   } = useQuote(categoryPrices, stickersFlat);
+
+  /**
+   * Determina si se deben mostrar precios en el catálogo.
+   * El inventario AM (Anny/Mario) tiene un sistema de venta diferente
+   * que aún no requiere precios públicos en la vista cliente.
+   */
+  const showPrices = inventario !== "AM";
+
+  /**
+   * Texto para WhatsApp sin precios — usado cuando showPrices es false.
+   * Lista las láminas seleccionadas con nombre pero sin montos.
+   */
+  const simpleWhatsappText = useMemo(() => {
+    if (quoteLines.length === 0) return "";
+    const separator = "─────────────────────────";
+    const lines = quoteLines.map((l) => {
+      const qtyPart  = l.qty > 1 ? ` ×${l.qty}` : "";
+      const namePart = l.sticker.name
+        ? ` — ${l.sticker.name
+            .replace(/^[^-]+ - /, "")
+            .replace(/\s*\(FOIL\)/gi, "")
+            .replace(/\s*\(Extra Sticker - Gold\)/gi, "")
+            .replace(/\s*\(Variant\)/gi, "")
+            .trim()}`
+        : "";
+      return `• ${l.sticker.code}${namePart}${qtyPart}`;
+    });
+    const totalUnitsSimple = quoteLines.reduce((acc, l) => acc + l.qty, 0);
+    return [
+      "🏆 Lista de Láminas Panini FIFA 2026",
+      separator,
+      ...lines,
+      separator,
+      `(${totalUnitsSimple} lámina${totalUnitsSimple !== 1 ? "s" : ""})`,
+    ].join("\n");
+  }, [quoteLines]);
 
   const filteredTeams = useMemo(() => {
     if (!stickersByTeam) return [];
@@ -298,7 +341,7 @@ export function CatalogView() {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex-1">
               <h1 className="text-xl font-black leading-tight tracking-tight" style={{ color: "#ffffff" }}>
-                🏆 Láminas Panini{seller ? ` — ${seller.displayName}` : ""}
+                🏆 Láminas Panini Réplicas
               </h1>
               <p className="text-sm mt-0.5">
                 <span className="font-black" style={{ color: "#FFC72C" }}>{totalAvailable}</span>
@@ -337,7 +380,9 @@ export function CatalogView() {
               Guía de tipos de lámina
             </p>
             <p className="text-xs text-gray-400 mt-1 mb-6">
-              Cada color es una categoría. El precio ya está incluido — toca una lámina para ver el total en tiempo real.
+              {showPrices
+                ? "Cada color es una categoría. El precio ya está incluido — toca una lámina para ver el total en tiempo real."
+                : "Cada color es una categoría. Toca una lámina para agregarla a tu lista."}
             </p>
             <div className="flex flex-wrap justify-center gap-3 pt-2 mb-5">
               {(["GOAT", "TOP", "METALIZADA", "ESCUDO", "FOTO_EQUIPO", "PATROCINADOR", "BASICA"] as const).map((cat) => {
@@ -352,16 +397,18 @@ export function CatalogView() {
                       {cat === "GOAT" ? "🐐 " : cat === "TOP" ? "⭐ " : null}
                       {meta.label}
                     </span>
-                    {/* Precio visible: "Desde $X.XXX" para que el cliente sepa antes de cotizar */}
-                    <span className="font-black mt-0.5">
-                      {price > 0 ? `Desde $${price.toLocaleString("es-CO")}` : "Consultar"}
-                    </span>
+                    {/* Precio visible solo para inventario CN (Nicolás/Cristian) */}
+                    {showPrices && (
+                      <span className="font-black mt-0.5">
+                        {price > 0 ? `Desde $${price.toLocaleString("es-CO")}` : "Consultar"}
+                      </span>
+                    )}
                   </span>
                 );
               })}
             </div>
             <p className="text-sm text-gray-600 font-medium border-t border-gray-100 pt-3">
-              🏷️ <span className="font-bold text-gray-700">¡Ya puedes cotizar!</span> Toca cualquier lámina para agregarla a tu pedido. El resumen aparece abajo.
+              🏷️ <span className="font-bold text-gray-700">¡Ya puedes armar tu lista!</span> Toca cualquier lámina para agregarla. El resumen aparece abajo.
             </p>
           </div>
         )}
@@ -392,6 +439,7 @@ export function CatalogView() {
             getQuantity={getQuantity}
             onToggle={toggle}
             categoryPrices={categoryPrices}
+            showPrices={showPrices}
           />
         ))}
 
@@ -407,10 +455,11 @@ export function CatalogView() {
         <QuotePanel
           count={totalUnits}
           total={total}
-          whatsappText={whatsappText}
+          whatsappText={showPrices ? whatsappText : simpleWhatsappText}
           onClear={clear}
           expanded={quoteExpanded}
           onToggleExpand={() => setQuoteExpanded((v) => !v)}
+          showPrices={showPrices}
         />
       ) : (
         // CTA fija cuando no hay nada seleccionado — guía al usuario sin necesidad de leer

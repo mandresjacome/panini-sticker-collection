@@ -54,45 +54,39 @@ export function AdminLayout() {
           <div className="flex-1 bg-[#8B5CF6]" />
         </div>
 
-        {/* En mobile: 2 filas (logo+salir / nav). En desktop: 1 fila con nav centrado */}
-        <div className="max-w-7xl mx-auto px-4 sm:relative">
+        {/* Una sola fila: logo izquierda | nav centro | usuario+salir derecha */}
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4 py-2">
 
-          {/* ── Fila 1 en mobile / única en desktop: logo + salir ───────── */}
-          <div className="flex items-center justify-between py-2 gap-2">
-
-            {/* Logo/título */}
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xl leading-none flex-shrink-0">🏆</span>
-              <div className="min-w-0">
-                <h1 className="text-sm font-black leading-tight tracking-tight truncate" style={{ color: '#ffffff' }}>Panel Vendedor</h1>
-                <p className="text-[10px] font-semibold tracking-wide uppercase" style={{ color: '#FFC72C' }}>FIFA World Cup 2026</p>
-              </div>
-            </div>
-
-            {/* Usuario + logout */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-xs text-gray-400 hidden sm:block truncate max-w-40">
-                {user.email}
-              </span>
-              <button
-                onClick={logout}
-                className="text-xs text-[#E8192C] hover:text-white border border-[#E8192C] hover:bg-[#E8192C] font-semibold transition-colors px-3 py-1.5 rounded-lg whitespace-nowrap"
-              >
-                Salir
-              </button>
+          {/* ── Logo/título ────────────────────────────────────────────── */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-xl leading-none">🏆</span>
+            <div>
+              <h1 className="text-sm font-black leading-tight tracking-tight" style={{ color: '#ffffff' }}>Panel Vendedor</h1>
+              <p className="text-[10px] font-semibold tracking-wide uppercase" style={{ color: '#FFC72C' }}>FIFA World Cup 2026</p>
             </div>
           </div>
 
-          {/* ── Nav: fila 2 en mobile, centrado en desktop ───────────────── */}
+          {/* ── Nav centrado ────────────────────────────────────────────── */}
           <nav
-            className="flex items-center gap-1 pb-2 sm:pb-0 sm:absolute sm:inset-y-0 sm:left-1/2 sm:-translate-x-1/2 sm:flex sm:items-center"
+            className="flex items-center gap-1"
             aria-label="Navegación del panel admin"
           >
             <AdminNavLink to="/admin" label="📋 Matriz" end />
-            {/* ✏️ Editar — oculto temporalmente */}
-            {/* <AdminNavLink to="/admin/crud" label="✏️ Editar" /> */}
             <AdminNavLink to="/admin/dashboard" label="📊 Dashboard" />
           </nav>
+
+          {/* ── Usuario + logout ────────────────────────────────────────── */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-xs text-gray-400 hidden sm:block truncate max-w-40">
+              {user.email}
+            </span>
+            <button
+              onClick={logout}
+              className="text-xs text-[#E8192C] hover:text-white border border-[#E8192C] hover:bg-[#E8192C] font-semibold transition-colors px-3 py-1.5 rounded-lg whitespace-nowrap"
+            >
+              Salir
+            </button>
+          </div>
 
         </div>
       </header>
