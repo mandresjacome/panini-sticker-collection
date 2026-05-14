@@ -341,7 +341,7 @@ export function CatalogView() {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex-1">
               <h1 className="text-xl font-black leading-tight tracking-tight" style={{ color: "#ffffff" }}>
-                🏆 Láminas Panini Réplicas
+                🏆 Láminas Panini{inventario === "AM" ? " Réplicas" : ""}
               </h1>
               <p className="text-sm mt-0.5">
                 <span className="font-black" style={{ color: "#FFC72C" }}>{totalAvailable}</span>
