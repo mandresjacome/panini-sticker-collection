@@ -91,8 +91,8 @@ export async function fetchAvailableStickers(inventario: string): Promise<Record
 export async function fetchPublicTeams(): Promise<Record<string, string>> {
   const { data, error } = await supabase
     .from("teams")
-    .select("codigo, nombre")
-    .order("codigo");
+    .select("code, name")   // Las columnas reales en la tabla son "code" y "name" (no "codigo"/"nombre")
+    .order("code");
 
   if (error) {
     // Si falla, retornar mapa vacío — los componentes usarán la sigla como fallback
@@ -101,8 +101,8 @@ export async function fetchPublicTeams(): Promise<Record<string, string>> {
   }
 
   const map: Record<string, string> = {};
-  for (const row of data as { codigo: string; nombre: string }[]) {
-    map[row.codigo] = row.nombre;
+  for (const row of data as { code: string; name: string }[]) {
+    map[row.code] = row.name;
   }
   return map;
 }
