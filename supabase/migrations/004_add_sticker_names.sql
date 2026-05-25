@@ -1017,26 +1017,21 @@ BEGIN
   UPDATE public.stickers SET nombre = 'Uruguay - Federico Valverde (Extra Sticker - Gold)' WHERE codigo = 'EX-URU10';
   UPDATE public.stickers SET nombre = 'USA - Christian Pulisic (Extra Sticker - Gold)' WHERE codigo = 'EX-USA16';
   UPDATE public.stickers SET nombre = 'Ghana - Mohammed Salisu' WHERE codigo = 'GHA4';
+  -- Patrocinadores Coca-Cola (CC) - Orden según plataforma oficial
   UPDATE public.stickers SET nombre = 'Spain - Lamine Yamal' WHERE codigo = 'CC1';
   UPDATE public.stickers SET nombre = 'Germany - Joshua Kimmich' WHERE codigo = 'CC2';
   UPDATE public.stickers SET nombre = 'England - Harry Kane' WHERE codigo = 'CC3';
   UPDATE public.stickers SET nombre = 'Mexico - Santiago Giménez' WHERE codigo = 'CC4';
-  UPDATE public.stickers SET nombre = 'USA - Antonee Robinson' WHERE codigo = 'CC5';
-  UPDATE public.stickers SET nombre = 'Colombia - Jefferson Lerma' WHERE codigo = 'CC6';
-  UPDATE public.stickers SET nombre = 'Mexico - Edson Álvarez' WHERE codigo = 'CC7';
-  UPDATE public.stickers SET nombre = 'Netherlands - Virgil van Dijk' WHERE codigo = 'CC8';
-  UPDATE public.stickers SET nombre = 'Canada - Alphonso Davies' WHERE codigo = 'CC9';
-  UPDATE public.stickers SET nombre = 'USA - Weston McKennie' WHERE codigo = 'CC10';
-  UPDATE public.stickers SET nombre = 'Argentina - Lautaro Martínez' WHERE codigo = 'CC11';
-  UPDATE public.stickers SET nombre = 'Brazil - Gabriel Magalhães' WHERE codigo = 'CC12';
-  UPDATE public.stickers SET nombre = 'Croatia - Joško Gvardiol' WHERE codigo = 'CC13';
-  UPDATE public.stickers SET nombre = 'Uruguay - Federico Valverde' WHERE codigo = 'CC14';
-  UPDATE public.stickers SET nombre = 'Ecuador - Enner Valencia' WHERE codigo = 'CC15';
-  UPDATE public.stickers SET nombre = 'Argentina - Emiliano Martínez' WHERE codigo = 'CC16';
-  UPDATE public.stickers SET nombre = 'Mexico - Raúl Jiménez' WHERE codigo = 'CC17';
-  UPDATE public.stickers SET nombre = 'France - Eduardo Camavinga' WHERE codigo = 'CC18';
-  UPDATE public.stickers SET nombre = 'France - William Saliba' WHERE codigo = 'CC19';
-  UPDATE public.stickers SET nombre = 'Ghana - Jordan Ayew' WHERE codigo = 'CC20';
+  UPDATE public.stickers SET nombre = 'Croatia - Joško Gvardiol' WHERE codigo = 'CC5';
+  UPDATE public.stickers SET nombre = 'Uruguay - Federico Valverde' WHERE codigo = 'CC6';
+  UPDATE public.stickers SET nombre = 'Colombia - Jefferson Lerma' WHERE codigo = 'CC7';
+  UPDATE public.stickers SET nombre = 'Ecuador - Enner Valencia' WHERE codigo = 'CC8';
+  UPDATE public.stickers SET nombre = 'Brazil - Gabriel Magalhães' WHERE codigo = 'CC9';
+  UPDATE public.stickers SET nombre = 'Netherlands - Virgil van Dijk' WHERE codigo = 'CC10';
+  UPDATE public.stickers SET nombre = 'Canada - Alphonso Davies' WHERE codigo = 'CC11';
+  UPDATE public.stickers SET nombre = 'Argentina - Emiliano Martínez' WHERE codigo = 'CC12';
+  UPDATE public.stickers SET nombre = 'Mexico - Raúl Jiménez' WHERE codigo = 'CC13';
+  UPDATE public.stickers SET nombre = 'Argentina - Lautaro Martínez' WHERE codigo = 'CC14';
 END $$;
 
 -- 3. Verificación rápida

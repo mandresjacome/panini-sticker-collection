@@ -20,6 +20,7 @@
 import { useState, useMemo, useCallback } from "react";
 import type { Sticker, CategoryPricesMap, StickerCategory } from "../types";
 import { getStickerCategory } from "../lib/stickerCategory";
+import { ALBUM_TEAM_INDEX } from "../lib/albumOrder";
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -171,7 +172,7 @@ export function useQuote(
 
   /**
    * Líneas de la cotización: una por lámina seleccionada, con precio efectivo y qty.
-   * Orden: por código del álbum.
+   * Orden: según el álbum físico (FWC → Grupos A-L → Patrocinadores CC).
    */
   const quoteLines = useMemo<QuoteLine[]>(() => {
     const lines: QuoteLine[] = [];
@@ -189,12 +190,23 @@ export function useQuote(
       lines.push({ sticker, category, effectivePrice, qty });
     }
 
-    lines.sort((a, b) =>
-      a.sticker.code.localeCompare(b.sticker.code, undefined, {
+    // Ordenar según el orden del álbum físico usando ALBUM_TEAM_INDEX
+    lines.sort((a, b) => {
+      const teamA = a.sticker.team;
+      const teamB = b.sticker.team;
+      
+      // Obtener índice de equipo en el orden del álbum
+      const idxA = ALBUM_TEAM_INDEX[teamA] ?? Number.MAX_SAFE_INTEGER;
+      const idxB = ALBUM_TEAM_INDEX[teamB] ?? Number.MAX_SAFE_INTEGER;
+      
+      if (idxA !== idxB) return idxA - idxB;
+      
+      // Si son del mismo equipo, ordenar por código numérico
+      return a.sticker.code.localeCompare(b.sticker.code, undefined, {
         numeric:     true,
         sensitivity: "base",
-      })
-    );
+      });
+    });
 
     return lines;
   }, [selectedMap, stickersMap, categoryPrices]);
