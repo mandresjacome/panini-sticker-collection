@@ -1,6 +1,6 @@
 # Avance de Desarrollo — App Láminas FIFA World Cup 2026
 
-**Fecha de última actualización:** 13 de mayo de 2026 — Sesión 14
+**Fecha de última actualización:** 25 de mayo de 2026 — Sesión 15
 
 ---
 
@@ -157,7 +157,7 @@ panini-sticker-collection/
 - **`src/hooks/useStickers.ts`** ✅ — TanStack Query + Realtime + mutaciones + métricas derivadas; `updateStickerFields` acepta campo **`precio`**; Realtime handler propaga `precio`
 - **`src/hooks/useTeams.ts`** ✅ — nombres completos de equipos (staleTime 30min)
 - **`src/hooks/useCategoryPrices.ts`** ✅ — **NUEVO** · TanStack Query sobre `category_prices`; fallback a `DEFAULT_CATEGORY_PRICES` mientras carga; mutación `updateCategoryPrice` con invalidación de caché
-- **`src/hooks/useQuote.ts`** ✅ — **NUEVO** · carrito efímero de cotización; `toggle/clear/isSelected`; `quoteLines` con precio efectivo (`sticker.precio ?? categoryPrices[cat]`); `total`; `whatsappText` pre-armado con formato Panini
+- **`src/hooks/useQuote.ts`** ✅ — carrito efímero de cotización; `toggle/clear/isSelected`; `quoteLines` con precio efectivo (`sticker.precio ?? categoryPrices[cat]`); `total`; `whatsappText` **agrupado por sección del álbum** (📋 Grupo A … Patrocinadores) + línea en blanco entre secciones
 
 ### Componentes
 - **`src/components/ui/LoginForm.tsx`** ✅ — formulario de login con diseño FIFA 2026
@@ -188,6 +188,7 @@ panini-sticker-collection/
 
 > ✅ **Migración 003 ya ejecutada** en Supabase Studio. Tabla `category_prices` y columna `precio` activas.
 > ✅ **Migración 004 ya ejecutada** en Supabase Studio. Columna `nombre` activa con 1020 nombres oficiales.
+> ✅ **Corrección manual CC5-CC14** aplicada el 25/05/2026 vía SQL Editor: los nombres de los patrocinadores CC5–CC14 se actualizaron directamente en producción porque la migración 004 ya había corrido con los valores anteriores y no se re-ejecuta automáticamente.
 
 ---
 
@@ -328,6 +329,13 @@ Funciona en ambas vistas. Ideas de mejora futura:
     - Cada botón usa `flex-col` con 3 filas: código (arriba) → nombre sin prefijo de equipo (`max-w-[80px] truncate`, `text-[9px]`) → precio (abajo)
     - Nombre visible solo cuando `sticker.name` existe, limpiando el prefijo `"Team - "` con la misma regex que `StickerCell`
 
+50. **Dashboard — métricas financieras y desglose por categoría** — `DashboardView.tsx`:
+    - `valorTotal` = suma de `precio efectivo × cantidad` de todas las láminas con estado `D`
+    - `ticketPromedio` = `valorTotal / totalDisponibles` (con guarda contra división por cero)
+    - Dos `MetricCard` nuevas: `💰 Valor total` y `📈 Ticket promedio`
+    - `laminaValiosa` = la lámina D con mayor precio efectivo (código + nombre + precio)
+    - Nueva sección `💎 Valor por categoría`: tabla con filas GOAT → BASICA; columnas Categoría / Láminas / Unidades / Valor Total / barra proporcional relativa al máximo
+
 51. **Cotización — nombre de jugador en el panel y WhatsApp** — `useQuote.ts`:
     - `whatsappText` ahora incluye el nombre del jugador por línea: `• MEX15 — Hirving Lozano (Básica) — $2.000`
     - Limpieza de sufijos redundantes: `(FOIL)`, `(Extra Sticker - Gold)`, `(Variant)` y prefijo de equipo removidos
@@ -351,7 +359,7 @@ Funciona en ambas vistas. Ideas de mejora futura:
 
 ---
 
-### 🐛 Sesión 14 — Corrección de bugs post-deploy multi-inventario
+### �🐛 Sesión 14 — Corrección de bugs post-deploy multi-inventario
 
 54. **Fix: store Zustand limpia datos al cambiar inventario** — `src/store/stickerStore.ts` + `src/hooks/useStickers.ts`:
     - Problema: al iniciar sesión con una cuenta AM (Anny/Mario) después de haber usado una cuenta CN (Cristian/Nicolás) en el mismo navegador, la Vista Matriz de Anny mostraba las láminas de Nicolás/Cristian hasta que la nueva query terminaba
@@ -364,12 +372,30 @@ Funciona en ambas vistas. Ideas de mejora futura:
     - Solución: corregidos a `select("code, name")` y el `TeamRow` interface, y el mapeo `teamsMap[row.code] = row.name`
     - Fix adicional: `enabled: !loading && !!user` para evitar que la query se dispare antes de que la instancia local de `useAuth()` haya resuelto la sesión
 
-50. **Dashboard — métricas financieras y desglose por categoría** — `DashboardView.tsx`:
-    - `valorTotal` = suma de `precio efectivo × cantidad` de todas las láminas con estado `D`
-    - `ticketPromedio` = `valorTotal / totalDisponibles` (con guarda contra división por cero)
-    - Dos `MetricCard` nuevas: `💰 Valor total` y `📈 Ticket promedio`
-    - `laminaValiosa` = la lámina D con mayor precio efectivo (código + nombre + precio)
-    - Nueva sección `💎 Valor por categoría`: tabla con filas GOAT → BASICA; columnas Categoría / Láminas / Unidades / Valor Total / barra proporcional relativa al máximo
+---
+
+### �️ Sesión 15 — Patrocinadores CC + Cotización por secciones (25 mayo 2026)
+
+56. **Fix: nombres CC5-CC14 desactualizados en producción** — La migración `004_add_sticker_names.sql` fue actualizada en el commit `1988fb6` (reorden de patrocinadores) pero las migraciones de Supabase **no se re-ejecutan** automáticamente en la DB ya desplegada. Los nombres CC5–CC14 en producción seguían siendo los anteriores (ej: CC5=`USA - Antonee Robinson` en vez de `Croatia - Joško Gvardiol`). Se aplicó un `UPDATE` directo en el SQL Editor de Supabase para los 10 códigos afectados (CC5–CC14). CC1–CC4 no cambiaron.
+
+57. **Cotización organizada por secciones del álbum** — El mensaje de cotización (copiado y/o enviado por WhatsApp) ahora agrupa las láminas por sección del álbum físico con encabezados visuales:
+    - `src/hooks/useQuote.ts` — importado `TEAM_GROUP_LABEL`; `whatsappText` reestructurado: por cada cambio de grupo se inserta `📋 Grupo A` (o `📋 Especiales`, `📋 Patrocinadores`…) como encabezado, con línea en blanco entre grupos; reemplaza la lista plana anterior que parecía alfabética
+    - `src/components/catalog/CatalogView.tsx` — `simpleWhatsappText` (versión sin precios para inventario AM) aplica el mismo agrupamiento con `TEAM_GROUP_LABEL` (ya importado) y encabezados `📋`
+    - Ambas vistas (catálogo CN con precios y catálogo AM sin precios) muestran el mismo formato estructurado
+    - Mensaje de ejemplo resultante:
+      ```
+      🏆 Cotización Láminas Panini FIFA 2026
+      ─────────────────────────
+      📋 Grupo A
+      • MEX5 — Santiago Giménez (Básica) — $500
+      
+      📋 Grupo J
+      • ARG10 — Messi (Básica) — $2.000
+      ─────────────────────────
+      💰 Total: $2.500
+      (2 láminas)
+      ```
+    - Commit: `2689b20` — `feat: Organizar cotizacion por secciones del album`
 
 ---
 
