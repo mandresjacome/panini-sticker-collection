@@ -224,7 +224,20 @@ export function CatalogView() {
   const simpleWhatsappText = useMemo(() => {
     if (quoteLines.length === 0) return "";
     const separator = "─────────────────────────";
-    const lines = quoteLines.map((l) => {
+
+    // Agrupar por sección del álbum igual que el texto con precios
+    const bodyLines: string[] = [];
+    let currentGroupLabel = "";
+
+    for (const l of quoteLines) {
+      const groupLabel = TEAM_GROUP_LABEL[l.sticker.team] ?? "Otros";
+
+      if (groupLabel !== currentGroupLabel) {
+        if (currentGroupLabel !== "") bodyLines.push("");
+        bodyLines.push(`📋 ${groupLabel}`);
+        currentGroupLabel = groupLabel;
+      }
+
       const qtyPart  = l.qty > 1 ? ` ×${l.qty}` : "";
       const namePart = l.sticker.name
         ? ` — ${l.sticker.name
@@ -234,13 +247,14 @@ export function CatalogView() {
             .replace(/\s*\(Variant\)/gi, "")
             .trim()}`
         : "";
-      return `• ${l.sticker.code}${namePart}${qtyPart}`;
-    });
+      bodyLines.push(`• ${l.sticker.code}${namePart}${qtyPart}`);
+    }
+
     const totalUnitsSimple = quoteLines.reduce((acc, l) => acc + l.qty, 0);
     return [
       "🏆 Lista de Láminas Panini FIFA 2026",
       separator,
-      ...lines,
+      ...bodyLines,
       separator,
       `(${totalUnitsSimple} lámina${totalUnitsSimple !== 1 ? "s" : ""})`,
     ].join("\n");

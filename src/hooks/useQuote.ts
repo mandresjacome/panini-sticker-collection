@@ -20,7 +20,7 @@
 import { useState, useMemo, useCallback } from "react";
 import type { Sticker, CategoryPricesMap, StickerCategory } from "../types";
 import { getStickerCategory } from "../lib/stickerCategory";
-import { ALBUM_TEAM_INDEX } from "../lib/albumOrder";
+import { ALBUM_TEAM_INDEX, TEAM_GROUP_LABEL } from "../lib/albumOrder";
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -219,6 +219,8 @@ export function useQuote(
 
   /**
    * Texto pre-armado para WhatsApp.
+   * Las láminas se agrupan por sección del álbum (Especiales, Grupo A … Patrocinadores)
+   * para que el mensaje refleje el mismo orden visual de la app.
    * Muestra cantidad si es > 1: "• MEX1 ×2 (Básica) — $2.000"
    */
   const whatsappText = useMemo(() => {
@@ -226,7 +228,22 @@ export function useQuote(
 
     const separator = "─────────────────────────";
 
-    const lines = quoteLines.map((l) => {
+    // Construir líneas agrupadas por sección del álbum
+    const bodyLines: string[] = [];
+    let currentGroupLabel = "";
+
+    for (const l of quoteLines) {
+      // Etiqueta de la sección a la que pertenece el equipo (ej. "Grupo A", "Patrocinadores")
+      const groupLabel = TEAM_GROUP_LABEL[l.sticker.team] ?? "Otros";
+
+      // Añadir encabezado de sección cuando cambia el grupo
+      if (groupLabel !== currentGroupLabel) {
+        // Separación visual entre grupos (excepto antes del primero)
+        if (currentGroupLabel !== "") bodyLines.push("");
+        bodyLines.push(`📋 ${groupLabel}`);
+        currentGroupLabel = groupLabel;
+      }
+
       const catLabel =
         l.category === "FOTO_EQUIPO"
           ? "Foto equipo"
@@ -246,8 +263,8 @@ export function useQuote(
             .trim()}`
         : "";
 
-      return `• ${l.sticker.code}${namePart}${qtyPart} (${catLabel}) — $${fmtSubtotal}`;
-    });
+      bodyLines.push(`• ${l.sticker.code}${namePart}${qtyPart} (${catLabel}) — $${fmtSubtotal}`);
+    }
 
     const formattedTotal = total.toLocaleString("es-CO");
     // Total de unidades (no de códigos únicos)
@@ -256,7 +273,7 @@ export function useQuote(
     return [
       "🏆 Cotización Láminas Panini FIFA 2026",
       separator,
-      ...lines,
+      ...bodyLines,
       separator,
       `💰 Total: $${formattedTotal}`,
       `(${totalUnits} lámina${totalUnits !== 1 ? "s" : ""})`,
